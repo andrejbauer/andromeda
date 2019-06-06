@@ -807,8 +807,19 @@ and letrec_clauses
           'a Tyenv.tyenvM -> ((Name.t * Mlty.ty_schema) list * Rsyntax.letrec_clause list * 'a) Tyenv.tyenvM
   = fun ~toplevel fycs m ->
 
-  let rec bind_functions acc = function
-    | [] -> return (List.rev acc)
+  let rec bind_and_check_functions acc = function
+    | [] ->
+       let acc = List.rev acc in
+
+       let rec check_bodies bodies = function
+         | [] -> return (List.rev bodies)
+
+         | (f, schopt, y, a, c, b) :: rem ->
+            Tyenv.add_bound_mono y a (check_comp c b) >>= fun c ->
+            check_bodies ((f, schopt, y, a, c, b) :: bodies) rem
+       in
+
+       check_bodies [] acc
 
     | Dsyntax.Letrec_clause (f, (y, a), annot, c) :: rem ->
        let a =
@@ -829,19 +840,12 @@ and letrec_clauses
        end >>= fun (sch, schopt) ->
        (if toplevel then Tyenv.add_ml_value_poly else Tyenv.add_bound_poly)
          f sch
-         (bind_functions ((f, schopt, y, a, c, b) :: acc) rem)
-  in
-
-  let rec check_bodies acc = function
-    | [] -> return (List.rev acc)
-
-    | (f, schopt, y, a, c, b) :: rem ->
-       Tyenv.add_bound_mono y a (check_comp c b) >>= fun c ->
-       check_bodies ((f, schopt, y, a, c, b) :: acc) rem
+         (bind_and_check_functions ((f, schopt, y, a, c, b) :: acc) rem)
   in
 
   let rec generalize_funs info clauses = function
-    | [] -> return (List.rev info, List.rev clauses)
+    | [] ->
+       return (List.rev info, List.rev clauses)
 
     | (f, Some sch, y, a, c, b) :: rem ->
        let t = Mlty.Arrow (a, b) in
@@ -855,11 +859,25 @@ and letrec_clauses
 
   in
 
-  bind_functions [] fycs >>=
-  check_bodies []  >>=
+  bind_and_check_functions [] fycs >>=
   generalize_funs [] [] >>= fun (info, clauses) ->
-  m >>= fun x ->
-  return (info, clauses, x)
+  begin
+    let rec fold = function
+      | [] ->
+         m >>= fun x ->
+         return (info, clauses, x)
+
+      | (f, sch) :: info ->
+         (if toplevel then
+            (* we already bound it in [bind_and_check_functions], sorry for the hack *)
+            fold info
+          else
+            Tyenv.add_bound_poly f sch (fold info))
+    in
+    fold info
+  end
+
+
 
 
 let add_ml_type (t, (params, def)) =

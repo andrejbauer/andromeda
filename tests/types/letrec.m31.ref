@@ -1,0 +1,2 @@
+val bottom :> mlforall α β γ, α →
+  list mlstring * (β → γ) * mlstring = <function>

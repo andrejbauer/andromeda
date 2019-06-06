@@ -1,0 +1,13 @@
+(** Test global let rec *)
+let rec f x = f x
+
+let h = f
+
+(** Test local let rec *)
+let bottom =
+   let a = ["a"] in
+   let rec f x = f x in
+   let b = "b" in
+   (a, f, b)
+
+
