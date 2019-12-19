@@ -2,7 +2,7 @@ rule A type ;;
 rule B type ;;
 rule ξ : A ≡ B ;;
 
-let d = derive (x : A) -> convert x ξ ;;
+let d = der (x : A) -> convert x ξ ;;
 
 rule a : A ;;
 match d a with x : t -> (x, t) end ;;

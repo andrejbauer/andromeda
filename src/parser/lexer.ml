@@ -12,7 +12,7 @@ let reserved = [
   ("congruence", CONGRUENCE) ;
   ("context", CONTEXT) ;
   ("convert", CONVERT) ;
-  ("derive", DERIVE) ;
+  ("der", DER) ;
   ("derivation", MLDERIVATION) ;
   ("end", END) ;
   ("exception", EXCEPTION) ;

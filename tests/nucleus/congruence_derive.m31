@@ -18,7 +18,7 @@ rule transitivity
 rule magic (A type) (a : A) (b : A) : a ≡ b : A ;;
 
 let eq =
-derive
+der
   (A type)
   ({a : A} B type)
   ({a : A} b₁ : B{a})

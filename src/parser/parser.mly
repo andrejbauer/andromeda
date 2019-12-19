@@ -53,7 +53,7 @@
 %token FUN
 
 (* TT commands *)
-%token FRESH CONVERT CONGRUENCE CONTEXT OCCURS DERIVE ABSTRACT
+%token FRESH CONVERT CONGRUENCE CONTEXT OCCURS DER ABSTRACT
 
 (* Toplevel directives *)
 %token VERBOSITY
@@ -235,7 +235,7 @@ term_:
   | FUN xs=ml_arg+ ARROW e=term
     { Sugared.Function (xs, e) }
 
-  | DERIVE ps=nonempty_list(premise) ARROW e=term
+  | DER ps=nonempty_list(premise) ARROW e=term
     { Sugared.Derive (ps, e) }
 
   | WITH h=term TRY c=term

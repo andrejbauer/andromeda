@@ -1,5 +1,5 @@
 let d =
-  derive (A type) (u : A) (v : A) (u ≡ v : A by ξ) ({x : A} B type) ->
+  der (A type) (u : A) (v : A) (u ≡ v : A by ξ) ({x : A} B type) ->
   congruence B{u} B{v} ξ :? (B{u} ≡ B{v} by ??)
 ;;
 
@@ -9,4 +9,4 @@ rule b : T
 rule S (_ : T) (_ : T) type
 ;;
 
-derive (a ≡ b : T by ζ) -> d T a b ζ ({x : T} S x x)
+der (a ≡ b : T by ζ) -> d T a b ζ ({x : T} S x x)

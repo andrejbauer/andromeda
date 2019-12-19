@@ -4,7 +4,7 @@ let r = ref ML.None ;;
 
 (* A trick to hijcack some free meta-variables *)
 let _ = 
-derive (A type) ({x : A} B type) ({x : A} {y : B{x}} f : A) ->
+der (A type) ({x : A} B type) ({x : A} {y : B{x}} f : A) ->
    (let a = fresh a : A in
    let b = fresh b : B{a} in
    r := ML.Some (f{a}{b}) ;

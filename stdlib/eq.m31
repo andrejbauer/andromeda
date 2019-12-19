@@ -33,8 +33,8 @@ external prove_eqterm_abstraction : checker -> boundary -> ML.option judgement
 
 let ch = ref empty_checker ;;
 
-let add_rule der =
-  match add !ch der with
+let add_rule drv =
+  match add !ch drv with
   | ML.Some ch' -> (ch := ch')
   | ML.None -> raise Invalid_equality_rule
   end

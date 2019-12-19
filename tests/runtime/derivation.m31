@@ -9,11 +9,11 @@ rule a : A ;;
 rule B (x : A) (y : A) (z : A) type ;;
 rule s (x : A) (y : A) (z : A) : B x y z ;;
 
-let d = derive (x : A) (y : A) -> s x x y ;;
+let d = der (x : A) (y : A) -> s x x y ;;
 
 chicken d a a ;;
 
-let e = derive ({x : A} {y : A} T type) (a : A) -> T{a}{a} ;;
+let e = der ({x : A} {y : A} T type) (a : A) -> T{a}{a} ;;
 
 chicken e ;;
 
