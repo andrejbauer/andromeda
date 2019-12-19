@@ -5,12 +5,11 @@ Rule tail is postulated.
 Rule eq is postulated.
 - : judgement = ⊢ tail ≡ tail : bull
 Rule Id is postulated.
-- : derivation = derive (A type) (a : A) (b : A) → Id A a b type
+- : derivation = der (A type) (a : A) (b : A) → Id A a b type
 Rule Pi is postulated.
-- : derivation = derive (A type) ({_ : A} B type) → Pi A ({x} B {x}) type
+- : derivation = der (A type) ({_ : A} B type) → Pi A ({x} B {x}) type
 Rule cow is postulated.
-- : derivation = derive (A type) (a : A) ({x : A} a ≡ x : A as ξ) → cow
-  A a ({x} a ≡ x : A) type
+- : derivation = der (A type) (a : A) ({x : A} a ≡ x : A as ξ) → cow A a
+  ({x} a ≡ x : A) type
 Rule reflect is postulated.
-- : derivation = derive (A type) (a : A) (b : A) (p : Id A a b) → a ≡ b :
-  A
+- : derivation = der (A type) (a : A) (b : A) (p : Id A a b) → a ≡ b : A

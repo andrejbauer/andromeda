@@ -317,7 +317,7 @@ let derivation ?max_level ~penv drv ppf =
                    (premise ~penv mv)
                    (fold ~penv:(debruijn_meta mv penv) drv)
   in
-  Print.print ppf ?max_level ~at_level:Level.derive "derive@ %t" (fold ~penv drv)
+  Print.print ppf ?max_level ~at_level:Level.derive "der@ %t" (fold ~penv drv)
 
 
 
