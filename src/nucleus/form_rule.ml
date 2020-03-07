@@ -220,16 +220,28 @@ let form_rule prems concl =
        BoundaryEqTerm (e1, e2, t)
   end
 
-
-let form_derivation prems concl =
+let form_derivation sgn prems concl =
   fold_prems prems
   begin fun metas ->
     match concl with
-    | JudgementIsType t -> JudgementIsType (mk_rule_is_type metas t)
+    | JudgementIsType t ->
+       JudgementIsType (mk_rule_is_type metas t),
+       BoundaryIsType ()
 
-    | JudgementIsTerm e -> JudgementIsTerm (mk_rule_is_term metas e)
+    | JudgementIsTerm e ->
+       let t = Sanity.type_of_term sgn e in
+       JudgementIsTerm (mk_rule_is_term metas e),
+       BoundaryIsTerm (mk_rule_is_type metas t)
 
-    | JudgementEqType eq -> JudgementEqType (mk_rule_eq_type metas eq)
+    | JudgementEqType eq ->
+       let eq = mk_rule_eq_type metas eq in
+       let EqType (_asmp, t1, t2) = eq in
+       JudgementEqType (mk_rule_eq_type metas eq),
+       BoundaryEqType (t1, t2)
 
-    | JudgementEqTerm eq -> JudgementEqTerm (mk_rule_eq_term metas eq)
+    | JudgementEqTerm eq ->
+       let eq = mk_rule_eq_term metas eq in
+       let EqTerm (_asmp, e1, e2, t) = eq in
+       JudgementEqTerm (mk_rule_eq_term metas eq),
+       BoundaryEqTerm (e1, e2, t)
   end

@@ -85,26 +85,6 @@ let rec to_argument = function
   | NotAbstract jdg -> Arg_NotAbstract jdg
   | Abstract (x, _, abstr) -> Arg_Abstract (x, to_argument abstr)
 
-let convert_rule f rl =
-  let rec fold = function
-    | Conclusion concl ->
-       begin match f concl with
-       | Some concl -> Conclusion concl
-       | None -> raise ConversionError
-       end
-
-    | Premise (mv, rl) -> Premise (mv, fold rl)
-  in
-  try
-    Some (fold rl)
-  with
-  | ConversionError -> None
-
-let as_is_type_rule = convert_rule as_is_type
-let as_is_term_rule = convert_rule as_is_term
-let as_eq_type_rule = convert_rule as_eq_type
-let as_eq_term_rule = convert_rule as_eq_term
-
 (** Conversion from abstracted general boundaries to particular ones *)
 
 let as_is_type_boundary = function
@@ -178,3 +158,28 @@ let from_eq_type_boundary_abstraction abstr =
 
 let from_eq_term_boundary_abstraction abstr =
   convert (fun t -> BoundaryEqTerm t) abstr
+
+(** Conversion of rules *)
+let convert_rule f_jdg f_bdry rl =
+  let rec fold = function
+    | Conclusion (jdg, bdry) ->
+       begin match f_jdg jdg with
+       | Some jdg ->
+          begin match f_bdry bdry with
+          | Some bdry -> Conclusion (jdg, bdry)
+          | None -> raise ConversionError
+          end
+       | None -> raise ConversionError
+       end
+
+    | Premise (mv, rl) -> Premise (mv, fold rl)
+  in
+  try
+    Some (fold rl)
+  with
+  | ConversionError -> None
+
+let as_is_type_rule = convert_rule as_is_type as_is_type_boundary
+let as_is_term_rule = convert_rule as_is_term as_is_term_boundary
+let as_eq_type_rule = convert_rule as_eq_type as_eq_type_boundary
+let as_eq_term_rule = convert_rule as_eq_term as_eq_term_boundary

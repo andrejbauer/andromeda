@@ -148,9 +148,9 @@ let form_rule_rap sgn inst rl =
        in
        RapMore (bdry, rap)
 
-    | Conclusion concl ->
-       let concl = inst args concl in
-       RapDone concl
+    | Conclusion (jdg, _bdry) ->
+       let jdg = inst args jdg in
+       RapDone jdg
   in
   fold [] rl
 
@@ -196,7 +196,7 @@ let rule_as_derivation sgn cnstr =
             let asmp = Collect_assumptions.arguments args in
             JudgementEqTerm (Mk.eq_term asmp e1 e2 t)
        in
-       Conclusion jdg
+       Conclusion (jdg, bdry)
 
     | Premise (prem, bdry) ->
        (* compute the k-th argument *)

@@ -271,10 +271,11 @@ let rec comp {Location.it=c'; at} =
 
 
   | Syntax.Derive (prems, c) ->
+     Runtime.lookup_signature >>= fun sgn ->
      premises prems
        (comp c >>= fun v -> let jdg = Runtime.as_judgement ~at v in return jdg)
      >>= fun (prems, concl) ->
-     let drv = Nucleus.form_derivation prems concl in
+     let drv = Nucleus.form_derivation sgn prems concl in
      Runtime.return (Runtime.Derivation drv)
 
   | Syntax.Apply (c1, c2) ->

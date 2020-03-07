@@ -5,7 +5,7 @@ open Eqchk_common
 (** The type of extensionality rules. *)
 type equation =
   { ext_pattern : Patt.is_type (* the rewrite pattern to match the type of equality *)
-  ; ext_rule : Nucleus.eq_term Nucleus.rule (* the associated rule *)
+  ; ext_rule : (Nucleus.eq_term * Nucleus.eq_term_boundary) Nucleus.rule (* the associated rule *)
   }
 
 let make_equation drv =
@@ -32,7 +32,7 @@ let make_equation drv =
   *)
   let rec fold (bdry1opt, bdry2opt) n_ob n_eq = function
 
-    | Nucleus_types.(Conclusion eq) ->
+    | Nucleus_types.(Conclusion (eq, _)) ->
        let (Nucleus_types.EqTerm (_asmp, e1, e2, t)) = Nucleus.expose_eq_term eq in
        check_meta (n_eq+1) e1 ; (* check LHS *)
        check_meta n_eq e2 ; (* check RHS *)

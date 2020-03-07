@@ -70,7 +70,7 @@ type 'a rule =
 
 type primitive = boundary rule
 
-type derivation = judgement rule
+type derivation = (judgement * boundary) rule
 
 (* A partial rule application *)
 type 'a rule_application =

@@ -10,9 +10,9 @@ let deopt = function
 (** The types of beta rules. *)
 
 type normalizer =
-  { type_computations : (Patt.is_type * Nucleus.eq_type Nucleus.rule) list SymbolMap.t ;
+  { type_computations : (Patt.is_type * (Nucleus.eq_type * Nucleus.eq_type_boundary) Nucleus.rule) list SymbolMap.t ;
     type_heads : IntSet.t SymbolMap.t ;
-    term_computations : (Patt.is_term * Nucleus.eq_term Nucleus.rule) list SymbolMap.t ;
+    term_computations : (Patt.is_term * (Nucleus.eq_term * Nucleus.eq_term_boundary)  Nucleus.rule) list SymbolMap.t ;
     term_heads : IntSet.t SymbolMap.t
   }
 
@@ -36,7 +36,7 @@ let find_term_computations sym {term_computations;_} =
 let make_type_computation drv =
   let rec fold k  = function
 
-    | Nucleus_types.(Conclusion eq)  ->
+    | Nucleus_types.(Conclusion (eq, _))  ->
        let (Nucleus_types.EqType (_asmp, t1, _t2)) = Nucleus.expose_eq_type eq in
        begin match Eqchk_pattern.make_is_type k t1 with
 
@@ -65,7 +65,7 @@ let make_type_computation drv =
 let make_term_computation drv =
   let rec fold k = function
 
-    | Nucleus_types.(Conclusion eq) ->
+    | Nucleus_types.(Conclusion (eq, _)) ->
        let (Nucleus_types.EqTerm (_asmp, e1, _e2, _t)) = Nucleus.expose_eq_term eq in
        begin match Eqchk_pattern.make_is_term k e1 with
 
