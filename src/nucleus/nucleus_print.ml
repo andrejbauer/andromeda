@@ -332,7 +332,12 @@ let premise ~penv {meta_nonce=n; meta_boundary=prem} ppf =
 let derivation ?max_level ~penv drv ppf =
   let rec fold ~penv drv ppf =
     match drv with
-    | Conclusion jdg_bdry -> Print.print ppf "%s@ %t" (Print.char_arrow ()) (thesis_judgement_with_boundary ~penv jdg_bdry)
+
+    | Conclusion jdg_bdry ->
+       Print.print ppf "%s@ %t"
+                   (Print.char_arrow ())
+                   (thesis_judgement_with_boundary ~penv jdg_bdry)
+
     | Premise (mv, drv) ->
        Print.print ppf "(%t)@ %t"
                    (premise ~penv mv)

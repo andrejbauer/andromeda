@@ -8,7 +8,7 @@ type ml_constructor = Ident.t
 type value =
   | Judgement of Nucleus.judgement_abstraction (** A judgement *)
   | Boundary of Nucleus.boundary_abstraction   (** A judgement boundary (also known as a goal) *)
-  | Derivation of Nucleus.derivation           (** A hypothetical derivation *)
+  | Derivation of Nucleus.judgement_rule       (** A hypothetical derivation *)
   | External of external_value                 (** An external ML value *)
   | Closure of (value,value) closure           (** An ML function *)
   | Handler of handler                         (** Handler value *)
@@ -65,7 +65,7 @@ val mk_string : string -> value
 val as_equality_checker : at:Location.t -> value -> Eqchk.checker
 
 (** Convert to a derivation, or fail with [DerivationExpected] *)
-val as_derivation : at:Location.t -> value -> Nucleus.derivation
+val as_derivation : at:Location.t -> value -> Nucleus.judgement_rule
 
 (** Convert to a non-abstracted value, or fail with [UnexpectedAbstraction] *)
 val as_not_abstract : at:Location.t -> 'a Nucleus.abstraction -> 'a
@@ -319,7 +319,7 @@ val top_add_ml_value : value -> unit toplevel
 val top_add_ml_value_rec : (value -> value comp) list -> unit toplevel
 
 (** Extend the signature with a new rule *)
-val top_add_rule : Ident.t -> Nucleus.primitive -> unit toplevel
+val top_add_rule : Ident.t -> Nucleus.meta list -> Nucleus.boundary -> unit toplevel
 
 val top_add_handle :
   at:Location.t ->   Ident.t ->

@@ -2,7 +2,7 @@ rule eq_term_refl (A type) (a : A) : a ≡ a : A
 
 rule eq_type_refl (A type) : A ≡ A
 
-rule Π (A type) ({x : A} B type) type
+rule Π (A type) ({x : A} B type) type ;;
 
 rule λ (A type) ({x : A} B type) ({x : A} f : B{x}) : Π A B
 
@@ -28,4 +28,3 @@ congruence (λ A ({x:A} B x) ({x:A} f x))
            (eq_type_refl A)
            ({x : A} eq_type_refl (B x))
            ({x : A} eq_term_refl (B x) (f x)) ;;
-

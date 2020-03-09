@@ -85,8 +85,8 @@ let rec comp {Location.it=c'; at} =
 
     | Syntax.AsDerivation cnstr ->
        Runtime.lookup_signature >>= fun sgn ->
-       let drv = Nucleus.rule_as_derivation sgn cnstr in
-       return (Runtime.Derivation drv)
+       let rl = Nucleus.Signature.lookup_rule cnstr sgn in
+       return (Runtime.Derivation rl)
 
     | Syntax.TTConstructor (cnstr, cs) ->
        Runtime.lookup_signature >>= fun sgn ->
@@ -768,13 +768,12 @@ let topletrec_bind ~at ~quiet ~print_annot info fxcs =
 let rec toplevel ~quiet ~print_annot {Location.it=c; at} =
   match c with
 
-  | Syntax.Rule (x, prems, bdry) ->
+  | Syntax.Rule (cnstr, prems, bdry) ->
      Runtime.top_lookup_opens >>= fun opens ->
-     Runtime.top_handle ~at (premises prems (comp_as_boundary ~at bdry)) >>= fun (premises, head) ->
-     let rule = Nucleus.form_rule premises head in
+     Runtime.top_handle ~at (premises prems (comp_as_boundary ~at bdry)) >>= fun (premises, bdry) ->
      (if not quiet then
-        Format.printf "@[<hov 2>Rule %t is postulated.@]@." (Ident.print ~opens ~parentheses:false x));
-     Runtime.top_add_rule x rule
+        Format.printf "@[<hov 2>Rule %t is postulated.@]@." (Ident.print ~opens ~parentheses:false cnstr));
+     Runtime.top_add_rule cnstr premises bdry
 
   | Syntax.DefMLTypeAbstract t ->
      Runtime.top_lookup_opens >>= fun opens ->

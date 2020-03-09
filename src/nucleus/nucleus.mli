@@ -104,28 +104,26 @@ and 'a stump_abstraction =
 (** An inference rule with a conclusion of type ['a] *)
 type 'a rule
 
-(** A primitive inference rule concludes with a boundary (of the conclusion) *)
-type primitive = boundary rule
-
 (** A derived rule concludes with a judgement and its boundary. *)
-type derivation = (judgement * boundary) rule
+type judgement_rule = (judgement * boundary) rule
 
 (** Type theory signature. *)
 module Signature : sig
 
   val empty : signature
 
-  val add_rule : Ident.t -> primitive -> signature -> signature
+  (** Add a primitive rule to the signature. *)
+  val add_rule : Ident.t -> judgement_rule -> signature -> signature
+
+  (** Lookup a primitive rule in the signature. *)
+  val lookup_rule : Ident.t -> signature -> judgement_rule
 end
 
 (** Form a primitive rule from a given list of meta-variables and a boundary *)
-val form_rule : meta list -> boundary -> primitive
+val form_primitive_rule : Ident.t -> meta list -> boundary -> judgement_rule
 
 (** Form a derived rule from a given list of meta-variables and a judgement. *)
-val form_derivation : signature -> meta list -> judgement -> derivation
-
-(** Form a derivation that corresponds to a primitive rule *)
-val rule_as_derivation : signature -> Ident.t -> derivation
+val form_derivation : signature -> meta list -> judgement -> judgement_rule
 
 (** Functions that expose abstract types. These are harmless because there is no way
     to map back into the absract types. *)
@@ -163,7 +161,7 @@ val form_eq_type_rap : signature -> (eq_type * eq_type_boundary) rule -> eq_type
 val form_eq_term_rap : signature -> (eq_term * eq_term_boundary) rule -> eq_term rule_application
 
 (** Form a fully non-applied derivation application *)
-val form_derivation_rap : signature -> derivation -> judgement rule_application
+val form_derivation_rap : signature -> judgement_rule -> judgement rule_application
 
 (** Convert atom judgement to term judgement *)
 val form_is_term_atom : is_atom -> is_term
@@ -242,16 +240,16 @@ val from_eq_type_boundary_abstraction : eq_type_boundary abstraction -> boundary
 val from_eq_term_boundary_abstraction : eq_term_boundary abstraction -> boundary_abstraction
 
 (** Convert the conclusion of a rule from a judgement to a type, if possible. *)
-val as_is_type_rule : derivation -> (is_type * is_type_boundary) rule option
+val as_is_type_rule : judgement_rule -> (is_type * is_type_boundary) rule option
 
 (** Convert the conclusion of a rule from a judgement to a term, if possible. *)
-val as_is_term_rule : derivation -> (is_term * is_term_boundary) rule option
+val as_is_term_rule : judgement_rule -> (is_term * is_term_boundary) rule option
 
 (** Convert the conclusion of a rule from a judgement to a type equation, if possible. *)
-val as_eq_type_rule : derivation -> (eq_type * eq_type_boundary) rule option
+val as_eq_type_rule : judgement_rule -> (eq_type * eq_type_boundary) rule option
 
 (** Convert the conclusion of a rule from a judgement to a term equation, if possible. *)
-val as_eq_term_rule : derivation -> (eq_term * eq_term_boundary) rule option
+val as_eq_term_rule : judgement_rule -> (eq_term * eq_term_boundary) rule option
 
 (** Conversions *)
 val convert_term : signature -> is_term -> eq_type -> is_term option
@@ -489,7 +487,7 @@ val print_judgement_with_boundary_abstraction :
   ?max_level:Level.t -> penv:print_environment -> (judgement * boundary) abstraction -> Format.formatter -> unit
 
 val print_derivation :
-  ?max_level:Level.t -> penv:print_environment -> derivation -> Format.formatter -> unit
+  ?max_level:Level.t -> penv:print_environment -> judgement_rule -> Format.formatter -> unit
 
 
 (** An error emitted by the nucleus *)

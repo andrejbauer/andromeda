@@ -60,7 +60,10 @@ let lookup_meta_index x mvs =
   in
   search 0 mvs
 
-(** The [mk_rule_XYZ] functions are auxiliary functions that should not be
+(** The [mk_rule_XYZ] functions take a list of free meta-variable names and abstract
+    the given entity to bound meta-variables.
+
+    The [mk_rule_XYZ] functions are auxiliary functions that should not be
     exposed. The external interface exposes the [form_rule_XYZ] functions defined
     below. *)
 
@@ -191,39 +194,74 @@ let fold_prems prems form_concl =
     | [] -> Conclusion (form_concl metas)
 
     |  {meta_nonce; meta_boundary=bdry} :: prems ->
-       let bdry = mk_rule_abstraction mk_rule_premise metas bdry in
-       let mv = {meta_nonce; meta_boundary=bdry} in
-       let rl = fold (mv :: metas) prems in
-       Premise (mv, rl)
+        let bdry = mk_rule_abstraction mk_rule_premise metas bdry in
+        let mv = { meta_nonce ; meta_boundary=bdry } in
+        let rl = fold (mv :: metas) prems in
+        Premise (mv, rl)
   in
   fold [] prems
 
-let form_rule prems concl =
+let form_primitive_rule cnstr prems bdry =
   fold_prems prems
   begin fun metas ->
-    match concl with
-    | BoundaryIsType () ->
-       BoundaryIsType ()
+  let bdry = mk_rule_premise metas bdry in
+  (* compute the arity of the rule *)
+  let rec fold k args = function
+    | [] ->
+       let args = List.rev args in
+       let jdg =
+         match bdry with
+         | BoundaryIsType () ->
+            JudgementIsType (Mk.type_constructor cnstr args)
 
-    | BoundaryIsTerm t ->
-       BoundaryIsTerm (mk_rule_is_type metas t)
+         | BoundaryIsTerm t ->
+            JudgementIsTerm (Mk.term_constructor cnstr args)
 
-    | BoundaryEqType (t1, t2) ->
-       let t1 = mk_rule_is_type metas t1
-       and t2 = mk_rule_is_type metas t2 in
-       BoundaryEqType (t1, t2)
+         | BoundaryEqType (t1, t2) ->
+            let asmp = Collect_assumptions.arguments args in
+            JudgementEqType (Mk.eq_type asmp t1 t2)
+         | BoundaryEqTerm (e1, e2, t) ->
+            let asmp = Collect_assumptions.arguments args in
+            JudgementEqTerm (Mk.eq_term asmp e1 e2 t)
+       in
+       (jdg, bdry)
 
-    | BoundaryEqTerm (e1, e2, t) ->
-       let e1 = mk_rule_is_term metas e1
-       and e2 = mk_rule_is_term metas e2
-       and t = mk_rule_is_type metas t in
-       BoundaryEqTerm (e1, e2, t)
+    | mv :: metas ->
+       (* compute the k-th argument *)
+       let rec mk_arg i args = function
+         | NotAbstract bdry ->
+            let args = List.rev args in
+            let jdg =
+              match bdry with
+              | BoundaryIsType () -> JudgementIsType (Mk.type_meta (MetaBound k) args)
+              | BoundaryIsTerm _ -> JudgementIsTerm (Mk.term_meta (MetaBound k) args)
+              | BoundaryEqType (t1, t2) ->
+                 let t1 = Shift_meta.is_type (k+1) t1
+                 and t2 = Shift_meta.is_type (k+1) t2 in
+                 let asmp = Collect_assumptions.term_arguments ~lvl:k args in
+                 JudgementEqType (Mk.eq_type asmp t1 t2)
+              | BoundaryEqTerm (e1, e2, t) ->
+                 let e1 = Shift_meta.is_term (k+1) e1
+                 and e2 = Shift_meta.is_term (k+1) e2
+                 and t = Shift_meta.is_type (k+1) t in
+                 let asmp = Collect_assumptions.term_arguments ~lvl:k args in
+                 JudgementEqTerm (Mk.eq_term asmp e1 e2 t)
+            in
+            Arg_NotAbstract jdg
+         | Abstract (x, t, bdry) ->
+            let args = (TermBoundVar i) :: args in
+            Arg_Abstract (x, mk_arg (i+1) args bdry)
+       in
+       let arg = mk_arg 0 [] mv.meta_boundary in
+       fold (k-1) (arg :: args) metas
+  in
+  fold (List.length metas - 1) [] (List.rev metas)
   end
 
-let form_derivation sgn prems concl =
+let form_derivation sgn prems jdg =
   fold_prems prems
   begin fun metas ->
-    match concl with
+    match jdg with
     | JudgementIsType t ->
        JudgementIsType (mk_rule_is_type metas t),
        BoundaryIsType ()
@@ -236,12 +274,12 @@ let form_derivation sgn prems concl =
     | JudgementEqType eq ->
        let eq = mk_rule_eq_type metas eq in
        let EqType (_asmp, t1, t2) = eq in
-       JudgementEqType (mk_rule_eq_type metas eq),
+       JudgementEqType eq,
        BoundaryEqType (t1, t2)
 
     | JudgementEqTerm eq ->
        let eq = mk_rule_eq_term metas eq in
        let EqTerm (_asmp, e1, e2, t) = eq in
-       JudgementEqTerm (mk_rule_eq_term metas eq),
+       JudgementEqTerm eq,
        BoundaryEqTerm (e1, e2, t)
   end

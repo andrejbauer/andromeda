@@ -68,16 +68,14 @@ type 'a rule =
   | Conclusion of 'a
   | Premise of meta * 'a rule
 
-type primitive = boundary rule
-
-type derivation = (judgement * boundary) rule
+type judgement_rule = (judgement * boundary) rule
 
 (* A partial rule application *)
 type 'a rule_application =
   | RapDone of 'a
   | RapMore of boundary_abstraction * (judgement_abstraction -> 'a rule_application)
 
-type signature = primitive Ident.map
+type signature = judgement_rule Ident.map
 
 type is_term_abstraction = is_term abstraction
 type is_type_abstraction = is_type abstraction

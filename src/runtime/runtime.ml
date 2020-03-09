@@ -157,7 +157,7 @@ and lexical = {
 and value =
   | Judgement of Nucleus.judgement_abstraction
   | Boundary of Nucleus.boundary_abstraction
-  | Derivation of Nucleus.derivation
+  | Derivation of Nucleus.judgement_rule
   | External of external_value
   | Closure of (value, value) closure
   | Handler of handler
@@ -572,7 +572,8 @@ let get_signature env = env.dynamic.penv.signature
 let lookup_signature env =
   Return env.dynamic.penv.signature
 
-let top_add_rule rname rule ({top_runtime=env;_} as topenv) =
+let top_add_rule rname metas bdry ({top_runtime=env;_} as topenv) =
+  let rule = Nucleus.form_primitive_rule rname metas bdry in
   let signature = Nucleus.Signature.add_rule rname rule env.dynamic.penv.signature
   and penv =
     penv_forbid

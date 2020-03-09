@@ -121,14 +121,14 @@ let form_meta_rap form abstr args1 args2 =
 let form_is_term_rap sgn c args1 args2 =
   let form eq_args concl =
     match concl with
-    | BoundaryIsTerm t_schema ->
+    | (_, BoundaryIsTerm t_schema) ->
        let asmp = Collect_assumptions.arguments eq_args
        and e1 = Mk.term_constructor c args1
        and e2 = Mk.term_constructor c args2
        and t = Instantiate_meta.is_type ~lvl:0 (List.rev args1) t_schema in
        JudgementEqTerm (Mk.eq_term asmp e1 e2 t)
 
-    | BoundaryIsType _ | BoundaryEqType _ | BoundaryEqTerm _ ->
+    | (_, (BoundaryIsType _ | BoundaryEqType _ | BoundaryEqTerm _)) ->
        assert false
   in
   let rl = Signature.lookup_rule c sgn in
@@ -140,13 +140,13 @@ let form_is_term_rap sgn c args1 args2 =
 let form_is_type_rap sgn c args1 args2 =
   let form eq_args concl =
     match concl with
-    | BoundaryIsType () ->
+    | (_, BoundaryIsType ()) ->
        let asmp = Collect_assumptions.arguments eq_args
        and t1 = Mk.type_constructor c args1
        and t2 = Mk.type_constructor c args2 in
        JudgementEqType (Mk.eq_type asmp t1 t2)
 
-    | BoundaryIsTerm _ | BoundaryEqType _ | BoundaryEqTerm _ ->
+    | (_, (BoundaryIsTerm _ | BoundaryEqType _ | BoundaryEqTerm _)) ->
        assert false
   in
   let rl = Signature.lookup_rule c sgn in
@@ -231,11 +231,11 @@ let form_is_type sgn ty1 ty2 =
      else
        let form eq_args concl =
          match concl with
-         | BoundaryIsType () ->
+         | (_, BoundaryIsType ()) ->
             let asmp = Collect_assumptions.arguments eq_args in
             Mk.eq_type asmp ty1 ty2
 
-         | BoundaryIsTerm _ | BoundaryEqType _ | BoundaryEqTerm _ ->
+         | (_, (BoundaryIsTerm _ | BoundaryEqType _ | BoundaryEqTerm _)) ->
             assert false
        in
        let rl = Signature.lookup_rule c sgn in
@@ -270,12 +270,12 @@ let form_is_term sgn e1 e2 =
        else
          let form' eq_args concl =
            match concl with
-           | BoundaryIsTerm t_schema ->
+           | (_, BoundaryIsTerm t_schema) ->
               let asmp = Collect_assumptions.arguments eq_args
               and t = Instantiate_meta.is_type ~lvl:0 (List.rev args1) t_schema in
               Mk.eq_term asmp e1 e2 t
 
-           | BoundaryIsType _ | BoundaryEqType _ | BoundaryEqTerm _ ->
+           | (_, (BoundaryIsType _ | BoundaryEqType _ | BoundaryEqTerm _)) ->
               assert false
          in
          let rl = Signature.lookup_rule c sgn in

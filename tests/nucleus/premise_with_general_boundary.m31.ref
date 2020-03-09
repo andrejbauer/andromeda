@@ -1,7 +1,6 @@
 Rule prod is postulated.
 Rule Pi is postulated.
-- :> derivation = derive (X type) ({_ : X} Y type) → Pi X ({x₀} Y {x₀})
-  type
+- :> derivation = derive (X type) ({_ : X} Y type) → Pi X ({x} Y {x}) type
 Rule Cow is postulated.
 - :> derivation = derive (A type) ({_ : A} B type) (C : prod (Pi A ({x} B
   {x})) A) → Cow A ({x} B {x}) C type

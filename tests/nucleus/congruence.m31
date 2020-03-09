@@ -32,4 +32,6 @@ let isPropA' x y = convert (isPropA (convert x α') (convert y α')) α ;;
 rule B' (_ : A') (_ : A') type ;;
 rule β (x : A) (y : A) : B x y ≡ B' (convert x α) (convert y α) ;;
 
+(Π A ({x} B x x)) ;;
+(Π A' ({y} B' y y)) ;;
 congruence (Π A ({x} B x x)) (Π A' ({y} B' y y)) α ({z} β z z)

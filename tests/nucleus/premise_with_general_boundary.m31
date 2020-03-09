@@ -1,6 +1,6 @@
 rule prod (A type) (B type) type ;;
 
-rule Pi (X :? ?? type) ({_ : X} Y :? ?? type) type ;;
+rule Pi (X :? ?? type) ({x : X} Y :? ?? type) type ;;
 
 Pi ;;
 
