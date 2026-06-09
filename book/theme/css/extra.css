@@ -1,0 +1,15 @@
+/* Override mdBook's default heading sizes so deep headings (h5, h6)
+   are not smaller than body text. */
+h5 {
+    font-size: 1em;
+    font-weight: 600;
+    margin-top: 1.5em;
+}
+
+h6 {
+    font-size: 0.95em;
+    font-weight: 600;
+    margin-top: 1.25em;
+    color: var(--fg);
+    opacity: 0.85;
+}

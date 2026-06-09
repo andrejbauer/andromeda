@@ -54,17 +54,17 @@ A disjoint sum is defined as
       | constrⱼ of tⱼ
 
 A leading `|` is optional and the declaration is terminated by `;;` or by
-the next top-level command. There is no `end` keyword.
+the next top-level command.
 
 Each constructor takes at most one argument. To pack several values into
 a constructor, use a tuple: `| Pair of α * β`. Constructors are
-namespaced under the current module — `foo` declared at the top level
-introduces the bare names `constr₁ … constrⱼ`. They need not be
-capitalized but they must be fully applied when used as values.
+namespaced under the current [module](#modules) — `foo` declared at the
+top level introduces the bare names `constr₁ … constrⱼ`. They need not
+be capitalized but they must be fully applied when used as values.
 
 The empty ML-type is defined with no constructors:
 
-    mltype empty = |
+    mltype empty = | ;;
 
 An ML-type may be declared *abstractly*, without any constructors. Such
 a type can be used wherever a type is expected, but it has no
@@ -91,15 +91,18 @@ The recursion must be guarded by data constructors, i.e., we only allow
 
 Mutually recursive types are joined with `and`:
 
-    mltype rec even = | Zero | SuccE of odd
-        and odd  = | SuccO of even
+    mltype rec even =
+      | Zero
+      | SuccE of odd
+    and odd =
+      | SuccO of even
 
 ### Predefined ML-types
 
 Andromeda binds the following ML-types before any user code runs.
 
-The keyword ML-types — recognized by the parser, with no surface
-constructors:
+The built-in ML-types, which are reserved keywords and have no
+user-level constructors:
 
 * `mlunit` is the unit type whose only value is the empty tuple `()`
 * `mlstring` is the type of [strings](#strings)
@@ -119,7 +122,7 @@ The datatypes pre-defined in the standard library:
 * `ML.order` is the type used for comparison of ML
   values, with constructors `ML.less`, `ML.equal`, `ML.greater`
 
-The judgement, boundary, and derivation ML-types are reflections of the
+The `judgement`, `boundary`, and `derivation` ML-types are reflections of the
 nucleus's trusted datatypes; their use is covered under the object type
 theory reference (forthcoming). The `ref` type and the operations on it
 appear in [Mutable references](#mutable-references).
@@ -129,15 +132,15 @@ appear in [Mutable references](#mutable-references).
 
 AML is a general-purpose programming language which supports the following programming features:
 
-* `let`-bindings of values
-* first-class functions
-* (mutually) recursive definitions of functions
-* datatypes (lists, tuples, and user-definable data types)
-* `match` statements and pattern matching
-* operations and handlers
-* exceptions
-* mutable references
-* modules
+* [`let`-bindings](#let-binding) of values
+* first-class [functions](#functions)
+* (mutually) [recursive functions](#recursive-functions)
+* datatypes ([lists](#lists), [tuples](#tuples), and [user-definable data types](#ml-type-definitions))
+* [`match` statements and pattern matching](#match-statements-and-patterns)
+* [operations and handlers](#operations-and-handlers)
+* [exceptions](#exceptions)
+* [mutable references](#mutable-references)
+* [modules](#modules)
 
 ### `let`-binding
 
@@ -175,7 +178,7 @@ The bound names `x₁`, ..., `xᵢ` do *not* refer to each other, thus:
     # let x = y and y = x in (x, y)
     - :> mlstring * mlstring = ("bar", "foo")
 
-You may use patterns in `let`-bindings, in which case the bound variables should be marked with `?`:
+You may use [patterns](#ml-patterns) in `let`-bindings, in which case the bound variables should be marked with `?`:
 
     # let (?a, ?b) = ("a", "b")
     val a :> mlstring = "a"
@@ -197,7 +200,7 @@ Example:
     # (fun x -> (x, x)) "foo"
     - :> mlstring * mlstring = ("foo", "foo")
 
-The arguments may be annotated with a type, in which case it is considered a pattern, so any bound variables must be
+The arguments may be annotated with a type, in which case it is considered a [pattern](#ml-patterns), so any bound variables must be
 marked with `?`:
 
     # fun (?x :> mlstring) -> x
@@ -345,46 +348,49 @@ The first pattern matches the list, binding `x` to `"foo"` and `y` to
 
 #### ML patterns
 
-The patterns are:
+The patterns that match ordinary ML values are:
 
-   |---|---|
-   | `_` | match any value |
-   | `p as ?x` | match according to pattern `p` and also bind the value to `x` |
-   | `p :> t` | match according to pattern `p` of type `t` |
-   | `?x` | match any value and bind it to `x` |
-   | `Constr p` | match a datatype constructor and its argument |
-   | `[]` | match the empty list |
-   | `p₁ :: p₂` | match the head and the tail of a non-empty list |
-   | `[p₁; ...; pᵢ]` | match the elements of the list |
-   | `(p₁, ..., pᵢ)` | match the elements of a tuple |
-   | `"..."` | match a string literal |
-   | `p type` | match a type judgment |
-   | `p₁ : p₂` | match a term judgment |
-   | `p₁ ≡ p₂` | match a type equality judgment |
-   | `p₁ ≡ p₂ : p₃` | match a term equality judgment |
-   | `⁇ type` | match a type boundary |
-   | `⁇ : p` | match a term boundary |
-   | `p₁ ≡ p₂ by ⁇` | match a type equality boundary |
-   | `p₁ ≡ p₂ : p₃ by ⁇` | match a term equality boundary |
-   | `{x : p₁} p₂` | match an abstraction |
-   | `_atom p` | match an atom (free variable) |
+| Pattern | Matches |
+|---|---|
+| `_` | any value |
+| `?x` | any value, binding it to `x` |
+| `p as ?x` | values matched by `p`, also binding the value to `x` |
+| `p :> t` | values matched by `p` of ML-type `t` |
+| `Constr p` | a datatype constructor applied to its argument |
+| `[]` | the empty list |
+| `p₁ :: p₂` | the head and the tail of a non-empty list |
+| `[p₁; ...; pᵢ]` | a list with exactly the given elements |
+| `(p₁, ..., pᵢ)` | a tuple of the given elements |
+| `"..."` | a string literal |
 
 Patterns must be linear, i.e., in a pattern each pattern variable `?x` may appear at most once.
 
-The four judgement patterns destructure the four judgement forms of the
-nucleus. `p type` matches an is-type judgement; `p₁ : p₂` matches an
-is-term judgement whose type matches `p₂`; `p₁ ≡ p₂` matches a type
-equality; and `p₁ ≡ p₂ : p₃` matches a term equality at the type matched
-by `p₃`.
+#### Judgement and boundary patterns
 
-The four boundary patterns destructure the four boundary forms: `⁇ type`
-matches an is-type boundary (which carries no further data); `⁇ : p`
-matches an is-term boundary at the type matched by `p`; `p₁ ≡ p₂ by ⁇`
-matches an eq-type boundary; and `p₁ ≡ p₂ : p₃ by ⁇` matches an eq-term
-boundary at the type matched by `p₃`. The marker `⁇` (or its ASCII form
-`??`) signals the boundary shape; it does not bind. Boundary patterns
-appear naturally in operation cases, where the checking-mode boundary
-flows in after the colon, e.g.
+In addition to the ML patterns above, AML has patterns that destructure
+the nucleus's judgements and boundaries. The full story — what
+judgements and boundaries *are*, how they arise, and how the four forms
+relate to the rules of the object type theory — belongs to the object
+type theory reference (forthcoming). For pattern-matching purposes
+only, the available forms are:
+
+| Pattern | Matches |
+|---|---|
+| `p type` | an is-type judgement |
+| `p₁ : p₂` | an is-term judgement with type matched by `p₂` |
+| `p₁ ≡ p₂` | a type-equality judgement |
+| `p₁ ≡ p₂ : p₃` | a term-equality judgement at type matched by `p₃` |
+| `⁇ type` | an is-type boundary |
+| `⁇ : p` | an is-term boundary with type matched by `p` |
+| `p₁ ≡ p₂ by ⁇` | a type-equality boundary |
+| `p₁ ≡ p₂ : p₃ by ⁇` | a term-equality boundary at type matched by `p₃` |
+| `{x : p₁} p₂` | an abstraction binding an atom of type matched by `p₁` |
+| `_atom p` | an atom (free variable) |
+
+The marker `⁇` (or its ASCII form `??`) signals the *shape* of a
+boundary; it does not bind. The boundary patterns appear naturally in
+operation cases, where the checking-mode boundary flows in after the
+colon, e.g.
 
     with
       | operation (?) : ML.Some (⁇ : ?t) -> ...
@@ -419,11 +425,11 @@ An operation is then invoked with
 where `cⱼ` must have type `tⱼ`, and the type of the computation is `u`.
 
 When an operation is invoked, it propagates outward to the innermost
-handler that has a matching case for it. The handler decides what value
-to return; that value is then resumed back into the computation that
-invoked the operation. Operations are like resumable exceptions —
-control returns to the point of invocation, unless the handler raises a
-proper exception instead.
+[handler](#handlers) that has a matching case for it. The handler
+decides what value to return; that value is then resumed back into the
+computation that invoked the operation. Operations are like resumable
+[exceptions](#exceptions) — control returns to the point of invocation,
+unless the handler raises a proper exception instead.
 
 #### Handlers
 
@@ -436,9 +442,10 @@ A handler value has the form
     | caseⱼ
     end
 
-where each `caseᵢ` is an operation case, an exception case, or a value
-case. The first case that matches is used. If no case matches, the
-value, exception, or operation propagates outward to the next enclosing
+where each `caseᵢ` is an [operation case](#operation-cases), an
+[exception case](#exception-cases), or a [value case](#value-cases).
+The first case that matches is used. If no case matches, the value,
+exception, or operation propagates outward to the next enclosing
 handler.
 
 ##### Operation cases
@@ -451,19 +458,19 @@ or the form
 
     | op p₁ ... pᵢ : p -> c
 
-The first form matches an invoked operation `op' v₁ ... vᵢ` when `op`
-equals `op'` and each `vⱼ` matches the corresponding pattern `pⱼ`. The
-second form additionally matches the *checking-mode boundary* against
-`p`: when the operation was invoked in checking mode with boundary
-`bdry`, then `ML.Some bdry` matches `p`; in inferring mode, `ML.None`
-matches `p`. The boundary patterns described under
-[ML patterns](#ml-patterns) can be used here to destructure the
-boundary.
+The first form matches an invoked [operation](#operations)
+`op' v₁ ... vᵢ` when `op` equals `op'` and each `vⱼ` matches the
+corresponding pattern `pⱼ`. The second form additionally matches the
+*checking-mode boundary* against `p`: when the operation was invoked in
+checking mode with boundary `bdry`, then `ML.Some bdry` matches `p`; in
+inferring mode, `ML.None` matches `p`. The
+[boundary patterns](#judgement-and-boundary-patterns) can be used here
+to destructure the boundary.
 
 When an operation case matches, the body `c` is evaluated with the
 pattern variables bound to the corresponding values. The value `v`
 produced by `c` is passed back to the point of operation invocation,
-unless `c` itself raises an exception.
+unless `c` itself raises an [exception](#exceptions).
 
 ##### Value cases
 
@@ -472,8 +479,8 @@ A value case has the form
     | val p -> c
 
 It is used when the handled computation evaluates to a value `v`
-without invoking any operation. The first value case whose pattern
-matches `v` is used.
+without invoking any [operation](#operations). The first value case
+whose pattern matches `v` is used.
 
 If no value case is present in the handler, the trivial case
 `val ?x -> x` is assumed. If at least one value case is present but the
@@ -526,8 +533,9 @@ Several handlers may be stacked on top of each other, for instance
         c
         ...
 
-When a computation `c` invokes an operation, the operation is handled
-by the innermost enclosing handler that has a matching case for it.
+When a computation `c` invokes an [operation](#operations), the
+operation is handled by the innermost enclosing [handler](#handlers)
+that has a matching [case](#operation-cases) for it.
 
 #### Exceptions
 
@@ -545,10 +553,10 @@ An exception is raised with
 
     raise (Exn c)
 
-(or `raise Exn` for a nullary exception), and caught by a `raise`
-handler case as described above. Exceptions are *non-resumable*: when
-caught, control does not return to the `raise` site, it stays in the
-handler's body.
+(or `raise Exn` for a nullary exception), and caught by an
+[exception case](#exception-cases) in a handler. Exceptions are
+*non-resumable*: when caught, control does not return to the `raise`
+site, it stays in the handler's body.
 
 For example:
 
@@ -561,7 +569,8 @@ For example:
 
 #### Top-level handlers
 
-Handlers may also be installed globally with a top-level command:
+[Handlers](#handlers) may also be installed globally with a top-level
+command:
 
     with
       | operation op₁ p₁₁ ... -> c₁
@@ -570,10 +579,11 @@ Handlers may also be installed globally with a top-level command:
     end
 
 Note that *top-level* operation cases are introduced by the keyword
-`operation`, whereas operation cases inside a `handler … end` value are
-not. A top-level handler installation replaces whatever handler was
-previously installed for the named operations. There can be no value or
-exception case at the top level — the cases are operation cases only.
+`operation`, whereas [operation cases](#operation-cases) inside a
+`handler … end` value are not. A top-level handler installation
+replaces whatever handler was previously installed for the named
+operations. There can be no value or exception case at the top level —
+the cases are operation cases only.
 
 
 ### Mutable references

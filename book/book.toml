@@ -12,6 +12,7 @@ mathjax-support = true
 git-repository-url = "https://github.com/Andromedans/andromeda"
 edit-url-template = "https://github.com/Andromedans/andromeda/edit/master/book/{path}"
 site-url = "/"
+additional-css = ["theme/css/extra.css"]
 
 [output.html.search]
 enable = true
