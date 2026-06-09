@@ -5,7 +5,7 @@ layout: page
 use_math: true
 ---
 
-**Warning (2025-08-08):** The second part of this documentation refers to the old Andromeda 1. Until this warning is deleted, your best chance is to consult the `./theories` and `./stdlib` subdirectories to see how Andromeda 2 supports user-defined type theories.**
+**Warning (2025-08-10):** The second part of this documentation refers to the old Andromeda 1. Until this warning is deleted, your best chance is to consult the `./theories` and `./stdlib` subdirectories to see how Andromeda 2 supports user-defined type theories.**
 
 ### Table of contents
 
@@ -23,7 +23,6 @@ use_math: true
    * [`match` statements and patterns](#match-statements-and-patterns)
    * [Operations and handlers](#operations-and-handlers)
    * [Mutable references](#mutable-references)
-   * [Dynamic variables](#dynamic-variables)
 * [Judgment computations](#judgment-computations)
    * [Inferring and checking mode](#inferring-and-checking-mode)
    * [Equality checking](#equality-checking)
