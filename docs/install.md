@@ -33,7 +33,7 @@ Checkout the Andromeda repository
     git clone git@github.com:Andromedans/andromeda.git
 
 or consider [forking it](https://github.com/Andromedans/andromeda#fork-destination-box) if
-you indent do experiment with it, or contribute to the project.
+you intend to experiment with it, or contribute to the project.
 
 To build Andromeda, run the command
 
