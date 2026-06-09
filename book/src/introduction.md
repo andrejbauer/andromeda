@@ -1,8 +1,4 @@
----
-title: About Andromeda 2
-navigation: about
-layout: page
----
+# Introduction
 
 Andromeda 2 is a proof checker for user-definable dependently-typed theories.
 It follows the design of [LCF](https://en.wikipedia.org/wiki/Logic_for_Computable_Functions)-style theorem provers:

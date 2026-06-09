@@ -1,29 +1,6 @@
----
-title: Documentation
-navigation: documentation
-layout: page
-use_math: true
----
 
-### Table of contents
+# The Andromeda meta-language
 
-* [About the Andromeda meta-language](#about-the-andromeda-meta-language)
-* [ML-types](#ml-types)
-   * [ML-type definitions](#ml-type-definitions)
-   * [Inductive ML-datatypes](#inductive-ml-datatypes)
-   * [Predefined ML-types](#predefined-ml-types)
-* [General-purpose programming](#general-purpose-programming)
-   * [`let`-binding](#let-binding)
-   * [Functions](#functions)
-   * [Recursive functions](#recursive-functions)
-   * [Sequencing](#sequencing)
-   * [Predefined data values](#predefined-data-values)
-   * [`match` statements and patterns](#match-statements-and-patterns)
-   * [Operations and handlers](#operations-and-handlers)
-   * [Mutable references](#mutable-references)
-   * [Modules](#modules)
-
-### About the Andromeda meta-language
 
 Andromeda is a proof assistant designed as a programming language, following the tradition
 of Robin Milner's
@@ -52,14 +29,14 @@ print the 4000 lines of the [Andromeda
 nucleus](https://en.wikipedia.org/wiki/Andromeda_Galaxy#Nucleus).
 
 
-### ML-types
+## ML-types
 
 The AML types are called **ML-types**, and are separate from the types
 appearing in the object type theory. They follow closely the usual ML-style
 parametric polymorphism, with the addition of `judgement`, `boundary`,
 and `derivation`, the reflection of nucleus values into AML.
 
-#### ML-type definitions
+### ML-type definitions
 
 An ML-type abbreviation may be defined as
 
@@ -95,7 +72,7 @@ introduction or elimination forms inside AML — values of an abstract
 type are typically produced by externals. The declaration takes the
 form `mltype NAME` or `mltype NAME α β ... γ`.
 
-#### Inductive ML-datatypes
+### Inductive ML-datatypes
 
 A recursive ML-type is declared with `mltype rec`:
 
@@ -117,7 +94,7 @@ Mutually recursive types are joined with `and`:
     mltype rec even = | Zero | SuccE of odd
         and odd  = | SuccO of even
 
-#### Predefined ML-types
+### Predefined ML-types
 
 Andromeda binds the following ML-types before any user code runs.
 
@@ -137,18 +114,18 @@ The datatypes pre-defined in the standard library:
   `::`
 * `ML.option α` is the type of [optional values](#optional-values), with
   constructors `ML.None` and `ML.Some`
-* `ML.bool` is the type of [booleans](#booleans), with constructors
+* `ML.bool` is the type of booleans, with constructors
   `ML.true` and `ML.false`
-* `ML.order` is the type used for [comparison](#comparison) of ML
+* `ML.order` is the type used for comparison of ML
   values, with constructors `ML.less`, `ML.equal`, `ML.greater`
 
 The judgement, boundary, and derivation ML-types are reflections of the
-nucleus's trusted datatypes; their use is covered under
-[Judgement computations](#object-type-theory). The `ref` type and the
-operations on it appear in [Mutable references](#mutable-references).
+nucleus's trusted datatypes; their use is covered under the object type
+theory reference (forthcoming). The `ref` type and the operations on it
+appear in [Mutable references](#mutable-references).
 
 
-### General-purpose programming
+## General-purpose programming
 
 AML is a general-purpose programming language which supports the following programming features:
 
@@ -162,7 +139,7 @@ AML is a general-purpose programming language which supports the following progr
 * mutable references
 * modules
 
-#### `let`-binding
+### `let`-binding
 
 A binding of the form
 
@@ -178,8 +155,8 @@ A `let`-binding may be annotated with an ML-type schema using `:>`:
 
 The `:>` is the *ML schema* ascription. A binding annotated with `:` (no
 `>`) is read instead as a typing-judgement ascription on a judgement
-computation, and is covered under [judgement
-computations](#object-type-theory).
+computation, and is covered under the object type theory reference
+(forthcoming).
 
 It is possible to bind several values simultaneously:
 
@@ -207,7 +184,7 @@ You may use patterns in `let`-bindings, in which case the bound variables should
     val p :> list mlstring = "p" :: []
 
 
-#### Functions
+### Functions
 
 An AML function has the form
 
@@ -249,7 +226,7 @@ You may use patterns in function arguments, in which case the bound variables mu
      # let snd (_, ?y) = y
      val snd :> mlforall α β, α * β → β = <function>
 
-#### Recursive functions
+### Recursive functions
 
 Recursive functions can be defined:
 
@@ -278,7 +255,7 @@ To define a polymorphic recursive function, we have to annotate it explicitly:
     # let rec f x :> mlforall a, a -> a = x
     val f :> mlforall α, α → α
 
-#### Sequencing
+### Sequencing
 
 The sequencing construct
 
@@ -290,9 +267,9 @@ computes `c₁`, discards the result, and computes `c₂`. It is equivalent to
 
 If `c₁` has type other than `mlunit`, a warning is printed.
 
-#### Predefined data values
+### Predefined data values
 
-##### Strings
+#### Strings
 
 A string is a sequence of characters delimited by quotes, e.g.
 
@@ -300,22 +277,22 @@ A string is a sequence of characters delimited by quotes, e.g.
 
 Its type is `mlstring`. There are no built-in operations on strings other
 than printing; equality and comparison are exposed by the standard
-library — see [`compare`](#externals).
+library via the `compare` external.
 
-##### Tuples
+#### Tuples
 
 A meta-level tuple is written as `(c₁, ..., cᵢ)`. Its type is
 `t₁ * ... * tᵢ` where `tⱼ` is the type of `cⱼ`. The unit value `()` has
 type `mlunit`.
 
-##### Optional values
+#### Optional values
 
 The value `ML.None` indicates a lack of value and `ML.Some c` indicates
 the presence of value `c`. The type of `ML.None` is
 `mlforall α, ML.option α`; the type of `ML.Some c` is `ML.option t` if
 `t` is the type of `c`.
 
-##### Lists
+#### Lists
 
 The empty list is written as `[]`. The list whose head is `c₁` and the
 tail is `c₂` is written as `c₁ :: c₂`. The computation
@@ -329,7 +306,7 @@ is shorthand for
 Note the **semicolon** separator inside the brackets; commas would build
 a tuple. A list of type `list t` must hold values of type `t`.
 
-#### `match` statements and patterns
+### `match` statements and patterns
 
 A `match` statement is also known as `case` in some languages and is
 simulated by successive `if`-`else if`-...-`else if`-`else` in others.
@@ -366,7 +343,7 @@ Example:
 The first pattern matches the list, binding `x` to `"foo"` and `y` to
 `"bar"`.
 
-##### ML patterns
+#### ML patterns
 
 The patterns are:
 
@@ -415,7 +392,7 @@ flows in after the colon, e.g.
 
 binds `?t` to the type carried by the term boundary.
 
-#### Operations and handlers
+### Operations and handlers
 
 AML operations and handlers are similar to those of the
 [Coop](https://github.com/andrejbauer/coop) programming language. They
@@ -423,7 +400,7 @@ let the user-level code intercept and react to events that arise during
 evaluation — equality questions, coercion requests, missing
 information — rather than baking them into the nucleus.
 
-##### Operations
+#### Operations
 
 A new operation is declared by
 
@@ -448,7 +425,7 @@ invoked the operation. Operations are like resumable exceptions —
 control returns to the point of invocation, unless the handler raises a
 proper exception instead.
 
-##### Handlers
+#### Handlers
 
 A handler value has the form
 
@@ -464,7 +441,7 @@ case. The first case that matches is used. If no case matches, the
 value, exception, or operation propagates outward to the next enclosing
 handler.
 
-###### Operation cases
+##### Operation cases
 
 An operation case in a `handler … end` value has the form
 
@@ -477,18 +454,18 @@ or the form
 The first form matches an invoked operation `op' v₁ ... vᵢ` when `op`
 equals `op'` and each `vⱼ` matches the corresponding pattern `pⱼ`. The
 second form additionally matches the *checking-mode boundary* against
-`p`: when the operation was invoked in [checking
-mode](#object-type-theory) with boundary `bdry`, then `ML.Some bdry`
-matches `p`; in inferring mode, `ML.None` matches `p`. The boundary
-patterns described under [ML patterns](#ml-patterns) can be used here
-to destructure the boundary.
+`p`: when the operation was invoked in checking mode with boundary
+`bdry`, then `ML.Some bdry` matches `p`; in inferring mode, `ML.None`
+matches `p`. The boundary patterns described under
+[ML patterns](#ml-patterns) can be used here to destructure the
+boundary.
 
 When an operation case matches, the body `c` is evaluated with the
 pattern variables bound to the corresponding values. The value `v`
 produced by `c` is passed back to the point of operation invocation,
 unless `c` itself raises an exception.
 
-###### Value cases
+##### Value cases
 
 A value case has the form
 
@@ -503,7 +480,7 @@ If no value case is present in the handler, the trivial case
 handled computation evaluates to a value matched by none of them, a
 runtime error occurs.
 
-###### Exception cases
+##### Exception cases
 
 An exception case has the form
 
@@ -513,7 +490,7 @@ It catches an exception matched by `p` and evaluates `c`. An exception
 is non-resumable, so the value of `c` becomes the value of the entire
 `with … try …` construct.
 
-##### The handling construct
+#### The handling construct
 
 To actually handle a computation `c` with a handler `h` write
 
@@ -552,7 +529,7 @@ Several handlers may be stacked on top of each other, for instance
 When a computation `c` invokes an operation, the operation is handled
 by the innermost enclosing handler that has a matching case for it.
 
-##### Exceptions
+#### Exceptions
 
 Exception types are declared at the top level. The declaration
 
@@ -582,7 +559,7 @@ For example:
     # with g try raise (StrExn "msg")
     - :> mlstring = "msg"
 
-##### Top-level handlers
+#### Top-level handlers
 
 Handlers may also be installed globally with a top-level command:
 
@@ -599,7 +576,7 @@ previously installed for the named operations. There can be no value or
 exception case at the top level — the cases are operation cases only.
 
 
-#### Mutable references
+### Mutable references
 
 Mutable references are as in OCaml:
 * a fresh reference is introduced by `ref c` where `c` evaluates to its initial value
@@ -608,12 +585,12 @@ Mutable references are as in OCaml:
 
 The ML-type of a mutable cell holding values of type `t` is `ref t`.
 
-#### Modules
+### Modules
 
 Andromeda has a simple module system for grouping declarations and
 controlling namespaces. There are four constructs:
 
-##### Defining a module inline
+#### Defining a module inline
 
 A submodule may be defined directly in the source:
 
@@ -627,7 +604,7 @@ qualification: `M.greeting`, `M.Red`, `M.color`. Module names are
 ordinary identifiers; by convention they are capitalised, but the
 parser does not require it.
 
-##### `require`
+#### `require`
 
 The toplevel command
 
@@ -646,7 +623,7 @@ Several modules may be required at once:
 
     require base, eq
 
-##### `include`
+#### `include`
 
     include M
 
@@ -656,7 +633,7 @@ copied bindings remain accessible after the inclusion both unqualified
 you want the included names to be re-exported as part of the enclosing
 module.
 
-##### `open`
+#### `open`
 
     open M
 

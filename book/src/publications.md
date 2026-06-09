@@ -1,8 +1,4 @@
----
-layout: page
-title: Publications
-navigation: publications
----
+# Publications
 
 ## Papers
 

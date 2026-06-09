@@ -1,0 +1,24 @@
+[book]
+title = "Andromeda 2"
+description = "A proof checker for user-definable dependent type theories"
+authors = ["The Andromeda team"]
+language = "en"
+src = "src"
+
+[output.html]
+default-theme = "light"
+preferred-dark-theme = "navy"
+mathjax-support = true
+git-repository-url = "https://github.com/Andromedans/andromeda"
+edit-url-template = "https://github.com/Andromedans/andromeda/edit/master/book/{path}"
+site-url = "/"
+
+[output.html.search]
+enable = true
+limit-results = 30
+use-boolean-and = true
+boost-title = 2
+boost-hierarchy = 2
+boost-paragraph = 1
+expand = true
+heading-split-level = 3

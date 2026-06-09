@@ -1,8 +1,4 @@
----
-layout: page
-title: How to install Andromeda
-navigation: "install"
----
+# How to install Andromeda
 
 Andromeda is implemented in [OCaml](https://ocaml.org) and relies on the [OPAM](https://opam.ocaml.org) package manager
 for installation. Please make sure you have a recent working OCaml & OPAM.
@@ -11,11 +7,11 @@ Execute the following command to get and install Andromeda:
 
     opam pin add andromeda git+https://github.com/Andromedans/andromeda
 
-### How to compile Andromeda
+## How to compile Andromeda
 
 If you would like to compile Andromeda yourself, follow these instructions.
 
-#### Prerequisites
+### Prerequisites
 
 You need [OCaml 4.12](https://ocaml.org) or later, and quite possibly it works with earlier versions,
 and several OCaml packages, which you can install by running
@@ -26,7 +22,7 @@ If you also install the [ledit](http://opam.ocaml.org/packages/ledit/ledit.2.03/
 [rlwrap](http://utopia.knoware.nl/~hlub/uck/rlwrap/#rlwrap) utility, the Andromeda
 toplevel will use them to give you line editing capabilities.
 
-#### Compilation
+### Compilation
 
 Checkout the Andromeda repository
 
@@ -45,9 +41,8 @@ in the `andromeda` folder. This will create the executable `./andromeda.exe`. Yo
 
 If you see no input, the tests passed.
 
-#### Usage
+### Usage
 
 You may run the compiled executable `andromeda.exe`. For basic usage and command-line options, run
 
     ./andromeda.exe --help
-
