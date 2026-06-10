@@ -18,9 +18,10 @@ and several OCaml packages, which you can install by running
 
     opam install dune dune-build-info dune-site menhir sedlex
 
-If you also install the [ledit](http://opam.ocaml.org/packages/ledit/ledit.2.03/) or
-[rlwrap](http://utopia.knoware.nl/~hlub/uck/rlwrap/#rlwrap) utility, the Andromeda
-toplevel will use them to give you line editing capabilities.
+For line-editing in the interactive toplevel, install
+[rlwrap](http://utopia.knoware.nl/~hlub/uck/rlwrap/#rlwrap) (or
+[ledit](http://opam.ocaml.org/packages/ledit/ledit.2.03/)) and wrap the
+invocation yourself: `rlwrap ./andromeda.exe`.
 
 ### Compilation
 

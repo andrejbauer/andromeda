@@ -184,7 +184,7 @@ The equality checker exposed by the standard library.
 
 ### The `eq` module at a glance
 
-Public surface of `stdlib/eq.m31`.
+The names that `stdlib/eq.m31` provides, and what each is for.
 
 ### Adding rules: `eq.add_rule`
 

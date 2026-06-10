@@ -11,6 +11,10 @@ AML is a functional call-by-value language with algebraic effects and handlers.
 It is statically typed, with Hindley-Milner-style parametric polymorphism and
 type inference.
 
+Top-level commands are separated by `;;`. The examples in this chapter
+use `;;` where a separator is needed, and a leading `#` to indicate
+input typed at the Andromeda toplevel.
+
 We refer to AML expressions as
 **computations** to emphasize that they may have *effects* (such as printing
 things on the screen or instantiating a meta-variable).
@@ -33,8 +37,16 @@ nucleus](https://en.wikipedia.org/wiki/Andromeda_Galaxy#Nucleus).
 
 The AML types are called **ML-types**, and are separate from the types
 appearing in the object type theory. They follow closely the usual ML-style
-parametric polymorphism, with the addition of `judgement`, `boundary`,
-and `derivation`, the reflection of nucleus values into AML.
+parametric polymorphism, with the addition of `judgement` (the US
+spelling `judgment` is also accepted), `boundary`, and `derivation` —
+the type-theoretic values that the user-defined object theory operates
+on.
+
+A polymorphic type-scheme is written `mlforall α β ... γ, t`. AML
+infers schemas automatically for `let`-bound values, displaying them
+on the prompt: `fun x -> (x, x)` is reported with the schema
+`mlforall α, α → α * α`. A binding can also be given a schema
+explicitly with `:>`, e.g. `let f x :> mlforall α, α → α = x`.
 
 ### ML-type definitions
 
@@ -258,6 +270,71 @@ To define a polymorphic recursive function, we have to annotate it explicitly:
     # let rec f x :> mlforall a, a -> a = x
     val f :> mlforall α, α → α
 
+### User-defined operators
+
+AML lets you bind names made of symbol characters and use them in
+prefix or infix position. Such an operator is declared like any
+other function, except that the operator's name is enclosed in
+parentheses on the left-hand side of the `let`:
+
+    # let (|>) x f = f x
+    val ( |> ) :> mlforall α β, α → (α → β) → β = <function>
+    # "hello" |> (fun s -> (s, s))
+    - :> mlstring * mlstring = ("hello", "hello")
+
+At the call site the parentheses are dropped; the operator is
+written between its arguments (infix) or before its argument
+(prefix). A prefix operator is declared the same way and applied
+in prefix position:
+
+    # let (~+) x = (x, x)
+    val ( ~+ ) :> mlforall α, α → α * α = <function>
+    # ~+ "hi"
+    - :> mlstring * mlstring = ("hi", "hi")
+
+#### Precedence and associativity
+
+The precedence and associativity of an operator are determined by
+its first character. The table below lists the seven operator
+classes, from lowest precedence to highest:
+
+| First character(s) | Associativity | Live examples |
+|---|---|---|
+| `:=` (exactly) | non-associative | the built-in assignment operator |
+| `=`, `<`, `>`, `\|`, `&`, `$` | left | `=`, `\|>`, `&&`, `\|\|`, `>=>` |
+| `@`, `^` | right | none in the standard library yet |
+| `::` (exactly) | right | the built-in list constructor |
+| `+`, `-` | left | none in the standard library yet |
+| `*`, `/`, `%`, `×` | left | none in the standard library yet |
+| `**` (prefix) | right | none in the standard library yet |
+| `~`, `?`, `!` (prefix operators) | n/a | the prelude binds `?` as an operation |
+
+Characters that may appear after the first one, in any operator,
+are: `! $ % & * + - . / : < = > ? @ ^ | ~ ×`.
+
+Live examples to read: `stdlib/base.m31` declares `|>` and `=`;
+`theories/bool.m31` declares `&&` and `||`; `theories/wtypes.m31`
+declares `>=>`.
+
+#### Reserved operator tokens
+
+A handful of operator-shaped tokens belong to the language itself
+and cannot be rebound:
+
+| Token | Meaning |
+|---|---|
+| `!` | reference dereference |
+| `:=` | reference assignment |
+| `??` / `⁇` | boundary marker |
+| `->` / `→` | function arrow |
+| `=>` / `⇒` | handler arrow |
+| `==` / `≡` | judgement equality |
+
+Note also that the standard prelude pre-binds `?` as an operation
+(see [the meta-variable section](#meta) — forthcoming), so you
+cannot rebind `?` on its own while the prelude is loaded; pass
+`--no-prelude` on the command line if you really need to.
+
 ### Sequencing
 
 The sequencing construct
@@ -387,10 +464,10 @@ only, the available forms are:
 | `{x : p₁} p₂` | an abstraction binding an atom of type matched by `p₁` |
 | `_atom p` | an atom (free variable) |
 
-The marker `⁇` (or its ASCII form `??`) signals the *shape* of a
-boundary; it does not bind. The boundary patterns appear naturally in
-operation cases, where the checking-mode boundary flows in after the
-colon, e.g.
+Write `⁇` (or the ASCII `??`) wherever a boundary pattern needs to
+say "this is a boundary of this kind". The boundary patterns are
+useful in operation cases, where the checking-mode boundary comes in
+after the colon, e.g.
 
     with
       | operation (?) : ML.Some (⁇ : ?t) -> ...
@@ -447,6 +524,11 @@ where each `caseᵢ` is an [operation case](#operation-cases), an
 The first case that matches is used. If no case matches, the value,
 exception, or operation propagates outward to the next enclosing
 handler.
+
+A handler that handles a computation of type `t` and produces a
+result of type `u` has the ML-type `t ⇒ u` (ASCII synonym: `t => u`).
+That is the type printed for handler values, as in
+`val g :> mlstring ⇒ mlstring = <handler>`.
 
 ##### Operation cases
 
@@ -578,12 +660,12 @@ command:
       | operation opᵢ pᵢ₁ ... -> cᵢ
     end
 
-Note that *top-level* operation cases are introduced by the keyword
-`operation`, whereas [operation cases](#operation-cases) inside a
-`handler … end` value are not. A top-level handler installation
-replaces whatever handler was previously installed for the named
-operations. There can be no value or exception case at the top level —
-the cases are operation cases only.
+Note the syntactic difference: at the top level each operation case
+begins with the keyword `operation`, while [operation
+cases](#operation-cases) inside a `handler … end` value begin directly
+with the operation's name. A top-level handler installation replaces
+whatever handler was previously installed for the named operations.
+The top-level form accepts operation cases only.
 
 
 ### Mutable references
@@ -611,8 +693,8 @@ A submodule may be defined directly in the source:
 
 After this declaration, the names inside `M` are accessible with dotted
 qualification: `M.greeting`, `M.Red`, `M.color`. Module names are
-ordinary identifiers; by convention they are capitalised, but the
-parser does not require it.
+ordinary identifiers; any identifier may serve as a module name,
+though by convention modules are capitalised.
 
 #### `require`
 
@@ -653,3 +735,63 @@ write `greeting` directly; clients of the surrounding module still need
 `M.greeting` (unless they too `open M`).
 
 Qualified paths may have several components: `Module.Submodule.name`.
+
+
+## Top-level directives
+
+These two commands talk to Andromeda itself: `external` binds an AML
+name to a value provided by Andromeda outside the meta-language, and
+`verbosity` sets the diagnostic level.
+
+### `external`
+
+The top-level form
+
+    external name : schema = "key"
+
+binds `name` to a value provided by Andromeda outside the meta-language
+(typically a function written in OCaml). The quoted `"key"` selects
+which external value is meant — it must match one of the keys
+Andromeda exposes. The schema gives the ML-type at which the external
+is to be used; it is the user's responsibility to write a schema that
+matches the external's actual type.
+
+The standard library uses `external` to bring in each native value it
+needs. For example, `stdlib/base.m31` declares printing and comparison
+this way:
+
+    external print : mlforall a, a -> mlunit = "print"
+    external compare : mlforall a, a -> a -> ML.order = "compare"
+
+and `stdlib/eq.m31` exposes the equality-checker primitives:
+
+    mltype checker ;;
+
+    external empty_checker : checker
+      = "Eqchk.empty_checker" ;;
+
+    external add : checker -> derivation -> checker
+      = "Eqchk.add" ;;
+
+A binding made by `external` behaves like any other `let`-bound value
+once declared. Most users encounter `external` only when reading the
+standard library; the full list of available external keys is part of
+the reference appendix (forthcoming).
+
+### `verbosity`
+
+The top-level directive
+
+    verbosity n
+
+sets the diagnostic verbosity to level `n`. The levels are:
+
+| Level | What is printed |
+|---|---|
+| `0` | success messages only |
+| `1` | errors |
+| `2` | warnings (the default) |
+| `3` | debugging messages |
+
+A higher level includes everything at lower levels. The same option can
+also be set from the shell with the `-V n` command-line flag.
