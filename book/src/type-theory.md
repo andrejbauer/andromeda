@@ -1,208 +1,283 @@
 # Object type theories
 
-*Skeleton chapter — sections will be filled in iteratively. Each
-section's stub names what it will cover; nothing here is yet a
-reference claim.*
+*This chapter is under construction. The section headings below
+indicate the planned structure; short paragraphs under each name what
+the section will contain when filled in.*
 
 
 ## What Andromeda's object level is
 
-The split between the AML meta-language and the user-defined object
-type theory; the role of the nucleus; what it means for a judgement
-to be "derivable from the postulated rules". Sets up the rest of the
-chapter.
+Andromeda is organised in two layers: a *meta-language*, in which the
+user writes programs that construct and manipulate proofs, and an
+*object type theory*, whose judgements those programs reason about.
+The meta-language is AML, documented in
+[The Andromeda meta-language](language.md). The object type theory is
+declared by the user, by postulating its inference rules with `rule`
+declarations; Andromeda itself is generic in this choice, and the
+contents of `./theories/` illustrate how different theories — the
+dependent product, the identity type, full Martin-Löf type theory, and
+others — arise from such postulations.
+
+Every value of ML-type `judgement` originates in the *nucleus*, the
+small trusted component of the implementation. The nucleus admits two
+kinds of inference rule: those the user has postulated, and a fixed
+collection of general structural rules — congruence rules, and the
+reflexivity, symmetry, and transitivity of judgemental equality. From
+this design follows the central correctness guarantee.
+
+<div class="claim">
+<strong>Soundness.</strong> Every value of ML-type
+<code>judgement</code> produced during the execution of an Andromeda
+program is derivable, in the inference rules the user has postulated
+together with the built-in structural rules, from the assumptions
+recorded in its context.
+</div>
+
+A judgement records, as part of its representation, every free atom
+and every meta-variable on which it depends. Combining several
+judgements — by applying a rule, by appealing to an equality, by
+abstracting over an atom — yields a result whose context is the union
+of the input contexts, computed by Andromeda itself.
+
+The rest of the chapter develops these ideas, in order: the four
+forms of judgement; the boundaries that classify them; the syntax of
+`rule` declarations; the AML expressions that build and inspect
+judgements; the patterns over judgements and boundaries; and the
+equality checker exposed by `stdlib/eq.m31`.
 
 
 ## Judgements
 
-The four judgement forms and the auxiliary notions (atoms,
-meta-variables, abstractions) that appear inside them.
+> *Stub: the four primitive judgement forms, together with atoms,
+> meta-variables, and the abstraction operation that nests over them.*
 
 ### The four judgement forms
 
-`A type`, `e : A`, `A ≡ B`, `e₁ ≡ e₂ : A` — what each one asserts.
+> *Stub: the shapes `A type`, `e : A`, `A ≡ B`, `e₁ ≡ e₂ : A`, and
+> their intended readings as is-type, is-term, type-equality, and
+> term-equality judgements.*
 
 ### Atoms
 
-Free variables of the object theory, introduced by `fresh`. Their
-relationship to abstractions.
+> *Stub: free variables of the object theory, introduced via `fresh`;
+> their typing by the carried is-type judgement; and the role they
+> play in abstractions and rule premises.*
 
 ### Meta-variables
 
-Holes that can be instantiated to judgements. The `?` operator from
-[`stdlib/prelude.m31`](../stdlib/prelude.m31) and the `meta` keyword.
+> *Stub: named placeholders that stand for a yet-to-be-supplied
+> judgement, classified by their boundary. The `meta` primitive (the
+> primitive form, taking an optional display name and requiring a
+> known boundary); the `?` operator from `stdlib/prelude.m31` as a
+> derived convenience; and the three flavours: type, term, and
+> equational meta-variables.*
 
 ### Abstractions
 
-`{x : A} J` — generalising a judgement over an atom. How
-abstractions nest, and how they appear as rule premises.
+> *Stub: the form `{x : A} J`, which generalises a judgement over an
+> atom of type `A`; the nesting of abstractions; the instantiation
+> form `C{e}`; and an explicit note that curly braces denote
+> *explicit* substitution rather than implicit arguments in the sense
+> of some other proof assistants.*
 
 
 ## Boundaries
 
-The dual notion to judgements: the *shape* an expected judgement
-should satisfy, without its data.
+> *Stub: boundaries are classifiers — each boundary describes the
+> shape of an acceptable judgement in a given position, without
+> committing to its content. Boundaries themselves can be abstracted,
+> mirroring abstractions of judgements.*
 
 ### What a boundary is
 
-A "judgement with its conclusion blanked out". The role boundaries
-play in checking-mode evaluation and partial rule application.
+> *Stub: motivation and rough description; the four boundary forms
+> as the duals of the four judgement forms.*
 
 ### The four boundary forms
 
-is-type, is-term `: A`, type-equality `A ≡ B by ⁇`, term-equality
-`e₁ ≡ e₂ : A by ⁇` — one boundary per judgement form, with the
-"hole" marked by `⁇`.
+> *Stub: `?? type`, `?? : A`, `A ≡ B by ??`, `e₁ ≡ e₂ : A by ??`,
+> with the `??` (or `⁇`) marker indicating the position in which a
+> judgement of the named shape would sit.*
 
 ### Boundary ascription `:?`
 
-The `c :? bdry` form for asking that `c` produce a judgement of the
-shape `bdry`.
+> *Stub: the construct `c :? bdry`, which places `c` under
+> checking-mode evaluation against the boundary `bdry`. The standard
+> position in which `meta x` may be used, together with the other
+> positions in which a checking-mode boundary is supplied.*
 
 ### Why boundaries
 
-Why this concept exists: directing checking mode, supplying enough
-context for rule premises to be inferred, letting handlers observe
-what kind of judgement is being asked for.
+> *Stub: the role boundaries play in directing checking-mode
+> evaluation, in supplying the information needed to introduce a
+> fresh meta-variable, and in allowing handlers to observe the
+> shape of the judgement being asked for.*
 
 
 ## Declaring inference rules
 
-How the user postulates the inference rules of their type theory.
+> *Stub: how the object theory is given. The `rule` declaration, its
+> premises and conclusion, and the relationship between rule premises
+> and the boundary-classifier discussion of the previous section.*
 
 ### The `rule` declaration
 
-The top-level form `rule NAME premises : conclusion`. What it
-introduces into the signature.
+> *Stub: the top-level form `rule NAME premises : conclusion`; the
+> value this introduces into the meta-language (a `derivation`); the
+> notational conventions for premises and conclusion.*
 
 ### Premises
 
-The shapes a premise can take.
+> *Stub: the basic form of a premise, `(x :? bdry)`, with an explicit
+> boundary, and the shorthand `({local context} x boundary-terminator)`
+> in which the boundary terminator (`type`, `: T`, `≡ … by …`) stands
+> for the boundary shape and the local-context prefix moves out of
+> the boundary into the premise.*
 
 #### is-type and is-term premises
 
-`(A type)`, `(a : A)` — the basic premise forms.
+> *Stub: `(A type)` and `(a : A)`, the most common premise shapes.*
 
-#### Equality premises with named witnesses (`… by ξ`)
+#### Equality premises with named witnesses
 
-`(A ≡ B by ξ)`, `(a ≡ b : A by ξ)` — equality premises that bind a
-name to the proof of the equality.
+> *Stub: `(A ≡ B by ξ)` and `(a ≡ b : A by ξ)`, which bind a name to
+> the proof of the equality so that subsequent premises and the
+> conclusion can refer to it.*
 
-#### Abstracted premises (`{x : A} J`)
+#### Abstracted premises
 
-Premises that themselves depend on local atoms, like
-`({x : A} B type)`.
+> *Stub: `({x : A} B type)` and similar — premises that themselves
+> depend on local atoms; their relation to abstracted boundaries.*
 
 #### Local-context prefix in a premise
 
-The shared local-context prefix in front of a premise, e.g.
-`(x : A, y : B, ... bdry)`.
+> *Stub: the longer form, with several locally-bound atoms in front
+> of a premise, e.g. `({x : A} {y : B{x}} J)`.*
 
 ### Conclusions
 
-The shapes the rule's conclusion may take: `type`, `: T`,
-`… ≡ … by …`, `:? …`.
+> *Stub: the four shapes a rule conclusion may take — `type`,
+> `: T`, `≡ … by …`, and the explicit `:? bdry` form — and what each
+> contributes to the rule's signature.*
 
-### A worked example: dependent product
+### A worked example: the dependent product
 
-A line-by-line walk-through of `theories/dependent_product.m31`,
-covering `Π`, `λ`, `app`, the β rule `Π_β`, and the extensionality
-rule `Π_ext`.
+> *Stub: a walk-through of `theories/dependent_product.m31`, covering
+> the rules `Π`, `λ`, `app`, the β rule `Π_β`, and the extensionality
+> rule `Π_ext`. The example will be used throughout the rest of the
+> chapter.*
 
 
 ## Judgement-level expressions in AML
 
-The AML expressions that build, transform, or observe nucleus
-judgements. Each subsection: signature, one-sentence description,
-one-line example.
+> *Stub: the AML expressions that construct, transform, and inspect
+> nucleus judgements. Each subsection states the signature of the
+> construct in terms of judgements and boundaries, describes what it
+> computes, and gives an example.*
 
 ### Applying a declared rule
 
-How a `rule`-declared name is invoked as a judgement-former.
+> *Stub: the application form `r j₁ … jₙ`, in which the rule `r`
+> declared via `rule` is applied to its premises in order; the
+> relation to the rule's premise list.*
 
 ### `meta`
 
-Referring to a meta-variable; how `meta hole :? bdry` produces a
-fresh meta with a given boundary.
+> *Stub: the form `meta x`, which introduces a fresh meta-variable in
+> a checking-mode position with a prescribed boundary; the display
+> convention by which consecutive `meta x` calls produce distinct
+> meta-variables disambiguated in print.*
 
 ### `derive`
 
-Building a derivation parametric in its premises.
+> *Stub: the form `derive (premises) -> body`, which builds a
+> derivation parametric in its premises; how the produced derivation
+> is invoked as if it were a primitive rule.*
 
 ### `convert`
 
-Transporting a judgement across a type equality.
+> *Stub: the form `convert e ξ`, which transports a term `e : A`
+> along an equality `ξ : A ≡ B` to obtain a term of type `B`.*
 
 ### `congruence`
 
-Congruence rule application.
+> *Stub: the form for proving an equality between applications of the
+> same head, given equalities between corresponding sub-judgements.*
 
 ### `rewrite`
 
-Applying an equality as a rewrite rule.
+> *Stub: the form for applying a registered equality as a rewrite at
+> a position inside a judgement.*
 
 ### `abstract`
 
-Abstracting an atom out of a judgement.
+> *Stub: the form `abstract a c`, the inverse of `c{e}` substitution:
+> wraps a judgement or boundary `c` in an outer abstraction binding
+> the free atom `a`. Typical use is `fresh a : A in … abstract a …`.*
 
 ### `context`
 
-Listing the free atoms of a judgement.
+> *Stub: the form that yields the list of free atoms on which a
+> judgement depends.*
 
 ### `occurs`
 
-Testing whether an atom occurs in a judgement.
+> *Stub: the form testing whether a given atom occurs free in a
+> judgement.*
 
 ### `natural`
 
-(To document — what `natural e` computes.)
+> *Stub: the form `natural e`. (To be investigated and described.)*
 
 ### `fresh`
 
-Introducing a fresh atom of a given type.
+> *Stub: the form `fresh x : A`, which introduces a fresh atom of
+> the given type into the surrounding scope.*
 
 
 ## Judgement and boundary patterns
 
-The patterns introduced briefly in the
-[language chapter](language.md#judgement-and-boundary-patterns),
-explained in semantic detail.
+> *Stub: the patterns introduced briefly in the
+> [language chapter](language.md#judgement-and-boundary-patterns),
+> together with their semantic content — what each pattern accesses
+> inside the judgement or boundary it matches.*
 
 ### Recap and full reference
 
-For each pattern, what it accesses inside the judgement or boundary
-it matches.
+> *Stub: per-pattern semantics, with examples.*
 
-### Worked match from `stdlib/eq.m31`
+### A worked match from `stdlib/eq.m31`
 
-A realistic match-on-judgement example, walked through.
+> *Stub: a realistic match on judgements and boundaries drawn from
+> the standard library's equality apparatus, walked through.*
 
 
 ## Equality checking via `stdlib/eq.m31`
 
-The equality checker exposed by the standard library.
+> *Stub: the equality checker provided by the standard library, the
+> rules it accepts, and the interface it offers to the user.*
 
-### The `eq` module at a glance
+### The `eq` module
 
-The names that `stdlib/eq.m31` provides, and what each is for.
+> *Stub: the names provided by `stdlib/eq.m31` and the role of each.*
 
 ### Adding rules: `eq.add_rule`
 
-Registering a derivation as a global equality rule.
+> *Stub: registration of a derivation as a global equality rule.*
 
 ### Local rules: `eq.add_locally`
 
-Scoping an equality rule to a sub-computation.
+> *Stub: scoping an equality rule to a sub-computation.*
 
 ### Normalisation: `eq.normalize_type`, `eq.normalize_term`
 
-Driving the checker forward to a normal form.
+> *Stub: driving the checker towards a normal form.*
 
 ### β-rules and extensionality rules
 
-The two shapes of equality rule the checker accepts.
+> *Stub: the two shapes of equality rule the checker accepts.*
 
 ### The linearity requirement
 
-Why each pattern variable in a rule must appear exactly once in the
-conclusion's head.
+> *Stub: the requirement that each premise meta-variable in a
+> registered rule appear linearly in the conclusion's head.*
