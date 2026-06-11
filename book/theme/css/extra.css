@@ -14,18 +14,12 @@ h6 {
     opacity: 0.85;
 }
 
-/* Theorem- and claim-style framed boxes. Apply with
-   <div class="claim">…</div> in Markdown. */
-.claim {
-    border: 1px solid var(--searchbar-border-color, rgba(0, 0, 0, 0.12));
-    border-left: 4px solid var(--icons, #6c7a89);
-    background: var(--quote-bg, rgba(0, 0, 0, 0.025));
-    padding: 0.9em 1.2em;
-    margin: 1.4em 0;
-    border-radius: 3px;
-}
-
-.claim > p:first-child > strong:first-child {
-    font-variant: small-caps;
-    letter-spacing: 0.04em;
+/* Repurpose the [!TIP] admonition as an "Example" callout. */
+.blockquote-tag-tip > .blockquote-tag-title { display: none; }
+.blockquote-tag-tip::before {
+    content: "Example";
+    display: block;
+    color: var(--blockquote-tip-color);
+    font-weight: 600;
+    margin-bottom: 0.5em;
 }

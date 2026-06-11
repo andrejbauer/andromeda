@@ -18,13 +18,19 @@ input typed at the Andromeda toplevel.
 We refer to AML expressions as
 **computations** to emphasize that they may have *effects* (such as printing
 things on the screen or instantiating a meta-variable).
+Every computation runs in one of two modes: *inferring* mode, where
+the computation produces whatever value it determines, or *checking*
+mode, where the result must match a given target. For
+judgement-producing computations the target is a *boundary*, covered
+under [Boundaries](type-theory.md#boundaries) in the object type
+theory chapter.
 
 Andromeda is a *generic* proof checker. The user defines their own type theory,
-with respect to which andromeda computes derivable judgments. Any judgement
+with respect to which Andromeda computes derivable judgements. Any judgement
 computed by Andromeda is guaranteed to be derivable from the inference rules
 postulated by the user.
 
-While Robin Milner's LCF and its HOL-style descendants compute judgments in
+While Robin Milner's LCF and its HOL-style descendants compute judgements in
 *simple* type theory, AML supports *dependent* type theories. This creates a
 significant overhead in the complexity. While [John
 Harrison](http://www.cl.cam.ac.uk/~jrh13/) could print the [HOL Light
@@ -33,10 +39,10 @@ print the 4000 lines of the [Andromeda
 nucleus](https://en.wikipedia.org/wiki/Andromeda_Galaxy#Nucleus).
 
 
-## ML-types
+## AML-types
 
-The AML types are called **ML-types**, and are separate from the types
-appearing in the object type theory. They follow closely the usual ML-style
+The types in AML are called **AML-types** to distinguish them from
+the types appearing in the object type theory. They follow closely the usual Hindley-Milner-style
 parametric polymorphism, with the addition of `judgement` (the US
 spelling `judgment` is also accepted), `boundary`, and `derivation` —
 the type-theoretic values that the user-defined object theory operates
@@ -48,13 +54,13 @@ on the prompt: `fun x -> (x, x)` is reported with the schema
 `mlforall α, α → α * α`. A binding can also be given a schema
 explicitly with `:>`, e.g. `let f x :> mlforall α, α → α = x`.
 
-### ML-type definitions
+### AML-type definitions
 
-An ML-type abbreviation may be defined as
+An AML-type abbreviation may be defined as
 
     mltype foo = t
 
-An ML-type may be parametrized:
+An AML-type may be parametrized:
 
     mltype foo α β ... γ = t
 
@@ -74,19 +80,19 @@ namespaced under the current [module](#modules) — `foo` declared at the
 top level introduces the bare names `constr₁ … constrⱼ`. They need not
 be capitalized but they must be fully applied when used as values.
 
-The empty ML-type is defined with no constructors:
+The empty AML-type is defined with no constructors:
 
     mltype empty = | ;;
 
-An ML-type may be declared *abstractly*, without any constructors. Such
+An AML-type may be declared *abstractly*, without any constructors. Such
 a type can be used wherever a type is expected, but it has no
 introduction or elimination forms inside AML — values of an abstract
 type are typically produced by externals. The declaration takes the
 form `mltype NAME` or `mltype NAME α β ... γ`.
 
-### Inductive ML-datatypes
+### Inductive AML-datatypes
 
-A recursive ML-type is declared with `mltype rec`:
+A recursive AML-type is declared with `mltype rec`:
 
     mltype rec t α β ... γ =
       | constr₁ of t₁
@@ -94,7 +100,7 @@ A recursive ML-type is declared with `mltype rec`:
       | constrⱼ of tⱼ
 
 The recursion must be guarded by data constructors, i.e., we only allow
-*inductive* definitions. ML-type application is *prefix* (`t α`, not
+*inductive* definitions. AML-type application is *prefix* (`t α`, not
 `α t`), so the standard tree datatype reads
 
     mltype rec tree α =
@@ -109,11 +115,11 @@ Mutually recursive types are joined with `and`:
     and odd =
       | SuccO of even
 
-### Predefined ML-types
+### Predefined AML-types
 
-Andromeda binds the following ML-types before any user code runs.
+Andromeda binds the following AML-types before any user code runs.
 
-The built-in ML-types, which are reserved keywords and have no
+The built-in AML-types, which are reserved keywords and have no
 user-level constructors:
 
 * `mlunit` is the unit type whose only value is the empty tuple `()`
@@ -131,10 +137,10 @@ The datatypes pre-defined in the standard library:
   constructors `ML.None` and `ML.Some`
 * `ML.bool` is the type of booleans, with constructors
   `ML.true` and `ML.false`
-* `ML.order` is the type used for comparison of ML
+* `ML.order` is the type used for comparison of AML
   values, with constructors `ML.less`, `ML.equal`, `ML.greater`
 
-The `judgement`, `boundary`, and `derivation` ML-types are reflections of the
+The `judgement`, `boundary`, and `derivation` AML-types are reflections of the
 nucleus's trusted datatypes; their use is covered under the object type
 theory reference (forthcoming). The `ref` type and the operations on it
 appear in [Mutable references](#mutable-references).
@@ -161,14 +167,14 @@ A binding of the form
     let x = c₁ in c₂
 
 computes `c₁` to a value `v`, binds `x` to `v`, and computes `c₂`. Thus, whenever `x` is
-encountered in `c₂` it is replaced by `v`.
+encountered in `c₂`, it is replaced by `v`.
 
-A `let`-binding may be annotated with an ML-type schema using `:>`:
+A `let`-binding may be annotated with an AML-type schema using `:>`:
 
     # let cow :> mlstring = "cow"
     val cow :> mlstring = "cow"
 
-The `:>` is the *ML schema* ascription. A binding annotated with `:` (no
+The `:>` is the *AML schema* ascription. A binding annotated with `:` (no
 `>`) is read instead as a typing-judgement ascription on a judgement
 computation, and is covered under the object type theory reference
 (forthcoming).
@@ -312,9 +318,9 @@ classes, from lowest precedence to highest:
 Characters that may appear after the first one, in any operator,
 are: `! $ % & * + - . / : < = > ? @ ^ | ~ ×`.
 
-Live examples to read: `stdlib/base.m31` declares `|>` and `=`;
-`theories/bool.m31` declares `&&` and `||`; `theories/wtypes.m31`
-declares `>=>`.
+The standard library binds `|>` for forward function application and
+`=` for value equality; `&&` and `||` are bound when the booleans
+theory is loaded.
 
 #### Reserved operator tokens
 
@@ -423,16 +429,16 @@ Example:
 The first pattern matches the list, binding `x` to `"foo"` and `y` to
 `"bar"`.
 
-#### ML patterns
+#### AML patterns
 
-The patterns that match ordinary ML values are:
+The patterns that match ordinary AML values are:
 
 | Pattern | Matches |
 |---|---|
 | `_` | any value |
 | `?x` | any value, binding it to `x` |
 | `p as ?x` | values matched by `p`, also binding the value to `x` |
-| `p :> t` | values matched by `p` of ML-type `t` |
+| `p :> t` | values matched by `p` of AML-type `t` |
 | `Constr p` | a datatype constructor applied to its argument |
 | `[]` | the empty list |
 | `p₁ :: p₂` | the head and the tail of a non-empty list |
@@ -444,7 +450,7 @@ Patterns must be linear, i.e., in a pattern each pattern variable `?x` may appea
 
 #### Judgement and boundary patterns
 
-In addition to the ML patterns above, AML has patterns that destructure
+In addition to the AML patterns above, AML has patterns that destructure
 the nucleus's judgements and boundaries. The full story — what
 judgements and boundaries *are*, how they arise, and how the four forms
 relate to the rules of the object type theory — belongs to the object
@@ -453,12 +459,12 @@ only, the available forms are:
 
 | Pattern | Matches |
 |---|---|
-| `p type` | an is-type judgement |
-| `p₁ : p₂` | an is-term judgement with type matched by `p₂` |
-| `p₁ ≡ p₂` | a type-equality judgement |
-| `p₁ ≡ p₂ : p₃` | a term-equality judgement at type matched by `p₃` |
-| `⁇ type` | an is-type boundary |
-| `⁇ : p` | an is-term boundary with type matched by `p` |
+| `p type` | a type judgement |
+| `p₁ : p₂` | a term judgement with type matched by `p₂` |
+| `p₁ ≡ p₂` | a type equality judgement |
+| `p₁ ≡ p₂ : p₃` | a term equality judgement at type matched by `p₃` |
+| `⁇ type` | a type-judgement boundary |
+| `⁇ : p` | a term-judgement boundary with type matched by `p` |
 | `p₁ ≡ p₂ by ⁇` | a type-equality boundary |
 | `p₁ ≡ p₂ : p₃ by ⁇` | a term-equality boundary at type matched by `p₃` |
 | `{x : p₁} p₂` | an abstraction binding an atom of type matched by `p₁` |
@@ -526,7 +532,7 @@ exception, or operation propagates outward to the next enclosing
 handler.
 
 A handler that handles a computation of type `t` and produces a
-result of type `u` has the ML-type `t ⇒ u` (ASCII synonym: `t => u`).
+result of type `u` has the AML-type `t ⇒ u` (ASCII synonym: `t => u`).
 That is the type printed for handler values, as in
 `val g :> mlstring ⇒ mlstring = <handler>`.
 
@@ -543,11 +549,13 @@ or the form
 The first form matches an invoked [operation](#operations)
 `op' v₁ ... vᵢ` when `op` equals `op'` and each `vⱼ` matches the
 corresponding pattern `pⱼ`. The second form additionally matches the
-*checking-mode boundary* against `p`: when the operation was invoked in
-checking mode with boundary `bdry`, then `ML.Some bdry` matches `p`; in
-inferring mode, `ML.None` matches `p`. The
-[boundary patterns](#judgement-and-boundary-patterns) can be used here
-to destructure the boundary.
+*checking-mode boundary* against `p`: when the operation was invoked
+in checking mode with boundary `bdry`, then `ML.Some bdry` matches
+`p`; in inferring mode, `ML.None` matches `p`. (Inferring and
+checking modes are explained under
+[Boundaries](type-theory.md#boundaries) in the object type theory
+chapter.) The [boundary patterns](#judgement-and-boundary-patterns)
+can be used here to destructure the boundary.
 
 When an operation case matches, the body `c` is evaluated with the
 pattern variables bound to the corresponding values. The value `v`
@@ -629,7 +637,7 @@ introduces a nullary exception, and
 
     exception Exn of t
 
-introduces an exception that carries one piece of data of ML-type `t`.
+introduces an exception that carries one piece of data of AML-type `t`.
 
 An exception is raised with
 
@@ -675,7 +683,7 @@ Mutable references are as in OCaml:
 * if `c` evaluates to a reference, its value can be accessed by `! c`
 * if `c` evaluates to a reference, its value can be modified by `c := c'` where `c'` evaluates to the new value.
 
-The ML-type of a mutable cell holding values of type `t` is `ref t`.
+The AML-type of a mutable cell holding values of type `t` is `ref t`.
 
 ### Modules
 
@@ -707,8 +715,8 @@ path is the directory of the current file followed by any directories
 supplied via the `-I` command-line flag. Each file is loaded at most
 once per session — re-requiring an already-loaded module is a no-op.
 
-The standard library (`./stdlib/`) is automatically on the search path
-unless `--no-stdlib` is given. The stock prelude is loaded automatically
+The standard library is automatically on the search path unless
+`--no-stdlib` is given. The stock prelude is loaded automatically
 unless `--no-prelude` is given.
 
 Several modules may be required at once:
@@ -740,8 +748,8 @@ Qualified paths may have several components: `Module.Submodule.name`.
 ## Top-level directives
 
 These two commands talk to Andromeda itself: `external` binds an AML
-name to a value provided by Andromeda outside the meta-language, and
-`verbosity` sets the diagnostic level.
+name to a value provided by Andromeda outside AML, and `verbosity`
+sets the diagnostic level.
 
 ### `external`
 
@@ -749,21 +757,20 @@ The top-level form
 
     external name : schema = "key"
 
-binds `name` to a value provided by Andromeda outside the meta-language
-(typically a function written in OCaml). The quoted `"key"` selects
+binds `name` to a value provided by Andromeda outside AML (typically
+a function written in OCaml). The quoted `"key"` selects
 which external value is meant — it must match one of the keys
-Andromeda exposes. The schema gives the ML-type at which the external
+Andromeda exposes. The schema gives the AML-type at which the external
 is to be used; it is the user's responsibility to write a schema that
 matches the external's actual type.
 
 The standard library uses `external` to bring in each native value it
-needs. For example, `stdlib/base.m31` declares printing and comparison
-this way:
+needs. For instance, it declares printing and comparison this way:
 
     external print : mlforall a, a -> mlunit = "print"
     external compare : mlforall a, a -> a -> ML.order = "compare"
 
-and `stdlib/eq.m31` exposes the equality-checker primitives:
+and exposes the equality-checker primitives by writing:
 
     mltype checker ;;
 
@@ -774,8 +781,7 @@ and `stdlib/eq.m31` exposes the equality-checker primitives:
       = "Eqchk.add" ;;
 
 A binding made by `external` behaves like any other `let`-bound value
-once declared. Most users encounter `external` only when reading the
-standard library; the full list of available external keys is part of
+once declared. The full list of available external keys is part of
 the reference appendix (forthcoming).
 
 ### `verbosity`
