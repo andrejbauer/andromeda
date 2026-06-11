@@ -1,0 +1,18 @@
+(* Baby implicit arguments. *)
+require eq ;;
+
+rule id' (A type) (x : A) : A ;;
+rule id_β (A type) (x : A) : id' A x ≡ x : A ;;
+eq.add_rule id_β ;;
+let id x = id' (base.type_of x) x ;;
+(* now we can write id x instead of id' A x *)
+let cow = derive (B type) (b : B) -> id b ;;
+
+(* Function composition works this way too. *)
+rule arrow (A type) (B type) type
+rule comp' (A type) (B type) (C type) (g : arrow B C) (f : arrow A B) : arrow A C
+let comp g f =
+  match (base.type_of g, base.type_of f) with
+  | ((arrow ?B ?C type), (arrow ?A _ type)) -> comp' A B C g f 
+  end
+let dog = derive (A type) (f : arrow A A) -> comp f f

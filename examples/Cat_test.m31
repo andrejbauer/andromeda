@@ -1,0 +1,99 @@
+(* Smoke test for examples/Cat.m31.
+
+   Postulates a concrete category C, a functor G : C → D, a
+   functor F : C → Cat, and exercises every AML wrapper plus
+   the cat_simp local-installation pathway. Each step that
+   needs to elaborate is followed by the expected display so
+   a casual reader can use this file as a usage example. *)
+
+require Cat ;;
+open Cat ;;
+
+(* ---- A concrete category and a morphism ---- *)
+
+rule C : cat ;;
+rule a : obj C ;;
+rule b : obj C ;;
+rule k : obj C ;;
+rule f : hom C a b ;;
+rule g : hom C b k ;;
+
+(* identity at a, inferred from a : obj C *)
+id a ;;
+(* expected: ⊢ id' C a : hom C a a *)
+
+(* composition g * f = g ∘ f : hom C a k, all categories inferred *)
+g * f ;;
+(* expected: ⊢ comp' C a b k g f : hom C a k *)
+
+(* identity threading through composition *)
+f * (id a) ;;
+(* expected: ⊢ comp' C a a b f (id' C a) : hom C a b *)
+
+(* ---- Functors ---- *)
+
+rule D : cat ;;
+rule G : functor C D ;;
+
+(* G's action on objects and morphisms *)
+fobj G a ;;
+(* expected: ⊢ fobj' C D G a : obj D *)
+
+fmap G f ;;
+(* expected: ⊢ fmap' C D G a b f : hom D (fobj' C D G a) (fobj' C D G b) *)
+
+(* ---- A functor into Cat, Grothendieck objects ---- *)
+
+rule F : functor C Cat ;;
+rule x : obj (fobj' C Cat F a) ;;
+
+(* Pair: (a, x) as an object of Groth C F. C and F inferred
+   from x's type. *)
+let p = pair a x ;;
+(* expected: ⊢ pair' C F a x : obj (Groth C F) *)
+
+(* Projections, with C and F inferred from p's type. *)
+fst p ;;
+(* expected: ⊢ fst' C F (pair' C F a x) : obj C *)
+
+snd p ;;
+(* expected: ⊢ snd' C F (pair' C F a x) : obj (fobj' C Cat F (fst' C F (pair' C F a x))) *)
+
+(* ---- with_rules cat_simp: fires the Tier-2 unfoldings ---- *)
+
+(* Smoke test of with_rules on cat_simp itself: install Cat_id /
+   Cat_comp locally and ask the checker for cat_id Cat applied
+   to a C-object — should reduce to Id of that object. *)
+let cat_id_unfold =
+  with_rules cat_simp (fun () ->
+    eq.prove (id' Cat C ≡ Id C : hom Cat C C by ??))
+;;
+(* expected: ⊢ id' Cat C ≡ Id C : hom Cat C C *)
+
+(* fst_beta / snd_beta can't be installed parametrically (they
+   are non-linear), but the instance at a specific (C, F, c, x)
+   works fine. *)
+let fst_pair_eq =
+  eq.add_locally (derive -> fst_beta C F a x) (fun () ->
+    eq.prove (fst' C F (pair' C F a x) ≡ a : obj C by ??))
+;;
+(* expected: ⊢ fst' C F (pair' C F a x) ≡ a : obj C *)
+
+(* ---- Phase F exercises: Grothendieck morphisms ---- *)
+
+(* Postulate a second concrete element of C and a C-morphism *)
+rule b' : obj C ;;
+rule f_C : hom C a b' ;;
+rule x' : obj (fobj' C Cat F b') ;;
+
+(* The F-action wrapper. Build a φ at type
+     hom (F b') (F_transport f_C x) x'  *)
+rule phi_test : hom (fobj' C Cat F b') (F_transport C F a b' f_C x) x' ;;
+
+(* Build a Grothendieck morphism *)
+let m = hom_pair f_C phi_test ;;
+(* expected: ⊢ hom_pair' C F a x b' x' f_C phi_test : hom (Groth C F) ... *)
+
+(* Project *)
+hom_fst m ;;
+hom_snd m ;;

@@ -1,0 +1,63 @@
+(* A commutative magma: a carrier M with a binary operation add
+   satisfying commutativity as a judgemental equality. We then
+   demonstrate how to use the commutativity law to convert a
+   value u : B (add x y) into a value of type B (add y x), where
+   B is a type family indexed by M.
+
+   Commutativity is symmetric (add x y ≡ add y x), so it cannot
+   be registered with the standard-library equality checker as a
+   rewrite rule — the rewrite would loop. The pathway shown
+   below (congruence + convert) is the direct way to use this
+   kind of equality. *)
+
+(* Carrier *)
+rule M type ;;
+
+(* Binary operation *)
+rule add (x : M) (y : M) : M ;;
+
+(* Commutativity, as a judgemental equality *)
+rule add_comm (x : M) (y : M) : add x y ≡ add y x : M ;;
+
+(* A type family indexed by M *)
+rule B (x : M) type ;;
+
+(* Demonstration. Postulate two elements and a value u : B (add x y). *)
+rule x : M ;;
+rule y : M ;;
+rule u : B (add x y) ;;
+
+(* The commutativity witness for our pair *)
+let xi = add_comm x y ;;
+
+(* Lift through B by congruence:
+       B (add x y) ≡ B (add y x)
+   The first two arguments to `congruence` are the two sides;
+   the remaining arguments are equality witnesses for the
+   sub-positions that differ. *)
+let xi_B = congruence (B (add x y)) (B (add y x)) xi ;;
+
+(* Transport u along the type equality *)
+let u_swapped = convert u xi_B ;;
+
+(* ---- Handler demonstration ----
+
+   The conversion above used `convert` explicitly. We can package
+   the same logic as a handler value, then apply it locally to a
+   computation that triggers `ML.coerce`. The handler catches the
+   operation and builds the same conversion. *)
+
+let handle_comm = handler
+  | ML.coerce (?e : B (add ?a ?b)) (?? : B (add ?b ?a)) ->
+      let xi = congruence (B (add a b)) (B (add b a)) (add_comm a b) in
+      convert e xi
+end ;;
+
+(* Apply `handle_comm` locally to the type-ascription computation.
+   Without the handler the ascription `u : B (add y x)` would
+   raise an unhandled `ML.coerce`; with it, the handler returns
+   the converted judgement. *)
+let u_swapped_via_handler =
+  with handle_comm try
+   u : B (add y x)
+;;
