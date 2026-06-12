@@ -1,51 +1,35 @@
-(* Categories, functors, the category of categories, and the
-   Grothendieck construction over a functor into Cat.
+(* Categories, functors, the category of categories Cat, and
+   the Grothendieck construction over a functor into Cat.
 
-   SIZE WARNING: This file postulates Cat : cat — the category
-   of categories belonging to itself as a category. That is the
-   Type-in-Type situation, inconsistent at the metatheory level
-   by the Hurkens / Girard paradox. The constructions built
-   here remain mechanically valid in the term language;
-   nothing in the intended development exploits the paradox.
-   Stratifying with a Level type carrying small and large is a
-   mechanical refactor deferred to a future iteration.
+   SIZE WARNING: this file postulates Cat : cat — the category
+   of categories belonging to itself as a category. That is
+   Type-in-Type and inconsistent at the metatheory level by
+   the Hurkens / Girard paradox.
 
-   Naming convention (from examples/baby_implicit.m31): the
-   primitive rule with all premises explicit is named with a
-   trailing prime (id', comp', fobj', fmap'). The unprimed
-   name is an AML wrapper that uses base.type_of to infer the
-   category arguments from the explicit ones. Composition has
-   a special infix wrapper ( * ) for readability. *)
+   Naming: primitive rules with every argument explicit are
+   primed (id', comp', fobj', fmap', pair', fst', snd', Id',
+   Comp'); the corresponding unprimed name is a wrapper that
+   infers the type-theoretic arguments.
+
+   Two flavours of wrapper appear:
+
+   - AML let-bindings driven by base.type_of on the inputs:
+     id, fst, snd, fobj, fmap, act, groth_*, and the infix
+     ( * ) and ( ** ).
+   - AML operations driven by the ambient checking-mode
+     boundary: Id, pair. Operations are deferred until
+     invoked, and check_judgement propagates the boundary
+     into the handler's ?bopt — so they fire in checking
+     positions where the boundary is α-structurally what
+     the handler expects. *)
 
 require eq ;;
 
-(* Reflexivity. refl' is derived (not postulated) from
-   congruence; refl infers the type from the term. *)
-let refl' = derive (A type) (a : A) -> a ≡ a : A by (congruence a a) ;;
+(* ---- Dependent sums ----
 
-let refl a =
-  match base.type_of a with
-  | (?A type) -> refl' A a
-  end
-;;
-
-(* Symmetry. The nucleus has reflexivity_type / reflexivity_term
-   and symmetry_type / symmetry_term internally, but the AML
-   level only sees reflexivity (via congruence X X) — not
-   symmetry. Postulate it. Same shape as eq_type_sym /
-   eq_term_sym in theories/judgemental_equality_*.m31. *)
-rule sym_type (A type) (B type) (A ≡ B) : B ≡ A ;;
-rule sym_term (A type) (a : A) (b : A) (a ≡ b : A) : b ≡ a : A ;;
-
-(* ---- Dependent sums (inlined from theories/dependent_sum.m31) ----
-
-   The Grothendieck construction below uses dependent pairs at
-   both the object and morphism level. Rather than re-axiomatize
-   them twice (and lose the linearized β-rules that the standard
-   library provides), we inline a self-contained Σ-type theory
-   here. Primitive names take the primed form (pair', fst',
-   snd'); AML wrappers below provide the unprimed, base.type_of-
-   inferring "baby-implicits" forms. *)
+   Σ A B is the type of dependent pairs (a, b) with a : A and
+   b : B(a). The Grothendieck construction below uses Σ at
+   both the object and morphism level. *)
 
 rule Σ (A type) ({x : A} B type) type ;;
 
@@ -55,40 +39,42 @@ rule fst' (A type) ({x : A} B type) (s : Σ A B) : A ;;
 
 rule snd' (A type) ({x : A} B type) (s : Σ A B) : B{fst' A B s} ;;
 
-(* β-laws (linearized Σ_β₁-style: outer A, B + inner A', B' +
-   equality witnesses) so they can register with eq.add_rule. *)
-rule Σ_β₁ (A type) ({x : A} B type)
-          (A' type) ({x : A'} B' type)
-          (a : A') (b : B'{a})
-          (A' ≡ A by ξ) ({x : A'} B'{x} ≡ B{convert x ξ} by ζ)
-          :?
-          (eq.add_locally (derive -> ξ) (fun () ->
-           eq.add_locally (derive (x : A') -> ζ{x}) (fun () ->
-           fst' A B (pair' A' B' a b) ≡ a : A by ?? ))) ;;
+(* β-laws: fst' (pair' a b) ≡ a and snd' (pair' a b) ≡ b.
+   The double set of premises (A, B and A', B' linked by
+   equalities ξ, ζ) is the linearized form the equality
+   checker accepts: each premise's head meta-variable appears
+   exactly once on the LHS pattern. *)
+rule Σ_β₁
+    (A type) ({x : A} B type)
+    (A' type) ({x : A'} B' type)
+    (a : A') (b : B'{a})
+    (A' ≡ A by ξ) ({x : A'} B'{x} ≡ B{convert x ξ} by ζ) :?
+  (eq.add_locally (derive -> ξ) (fun () ->
+   eq.add_locally (derive (x : A') -> ζ{x}) (fun () ->
+   fst' A B (pair' A' B' a b) ≡ a : A by ?? ))) ;;
 eq.add_rule Σ_β₁ ;;
 
-rule Σ_β₂ (A type) ({x : A} B type)
-          (A' type) ({x : A'} B' type)
-          (a : A') (b : B'{a})
-          (A' ≡ A by ξ) ({x : A'} B'{x} ≡ B{convert x ξ} by ζ)
-          :?
-          (eq.add_locally (derive -> ξ) (fun () ->
-           eq.add_locally (derive (x : A') -> ζ{x}) (fun () ->
-           snd' A B (pair' A' B' a b) ≡ b : B{a} by ?? ))) ;;
+rule Σ_β₂
+    (A type) ({x : A} B type)
+    (A' type) ({x : A'} B' type)
+    (a : A') (b : B'{a})
+    (A' ≡ A by ξ) ({x : A'} B'{x} ≡ B{convert x ξ} by ζ) :?
+  (eq.add_locally (derive -> ξ) (fun () ->
+   eq.add_locally (derive (x : A') -> ζ{x}) (fun () ->
+   snd' A B (pair' A' B' a b) ≡ b : B{a} by ?? ))) ;;
 eq.add_rule Σ_β₂ ;;
 
 (* Extensionality: two Σ-pairs with equal projections are equal. *)
-rule Σ_ext (A type) ({x : A} B type) (s : Σ A B) (t : Σ A B)
-  (fst' A B s ≡ fst' A B t : A by ξ)
-  (convert (snd' A B s) (congruence B{fst' A B s} B{fst' A B t} ξ) ≡
-   snd' A B t : B{fst' A B t} by ζ)
-  : s ≡ t : Σ A B ;;
+rule Σ_ext
+    (A type) ({x : A} B type)
+    (s : Σ A B) (t : Σ A B)
+    (fst' A B s ≡ fst' A B t : A by ξ)
+    (convert (snd' A B s) (congruence B{fst' A B s} B{fst' A B t} ξ) ≡
+     snd' A B t : B{fst' A B t} by ζ) :
+  s ≡ t : Σ A B ;;
 eq.add_rule Σ_ext ;;
 
-(* AML wrappers for the Σ projections: A and the type-family B
-   are inferred from s : Σ A B via base.type_of. After
-   Groth_obj_eq registers, these also work on Groth-objects
-   (whose type is judgementally equal to a Σ-type). *)
+(* Σ projection wrappers: A and B inferred from s : Σ A B. *)
 let fst s =
   match base.type_of s with
   | (Σ ?A ?B type) -> fst' A B s
@@ -101,7 +87,30 @@ let snd s =
   end
 ;;
 
-(* ---- Phase A: cat with accessors and laws ---- *)
+(* Σ pairing wrapper. As an operation rather than a let, so that
+   each invocation defers to the handler and check_judgement
+   propagates the ambient boundary into ?bopt. The boundary type
+   is normalized through the global equality checker before the
+   Σ pattern match, so any type registered as equivalent to a Σ
+   (e.g. obj (Groth C F) via Groth_obj_eq) fires the wrapper
+   too — the constructed pair' is then converted back to the
+   original boundary type. *)
+operation pair : judgement -> judgement -> judgement
+with
+| operation pair ?x ?y : ?bopt ->
+  match bopt with
+  | ML.Some (?? : ?T) ->
+    let (_, ?Tnorm) = eq.normalize T in
+    match Tnorm with
+    | (Σ ?A ?B type) ->
+      convert (pair' A B x y) (eq.equalize_type (Σ A B) T)
+    | _ -> base.failure "pair: boundary type does not normalize to Σ"
+    end
+  | _ -> base.failure "pair: no checking-mode boundary"
+  end
+end
+
+(* ---- Categories ---- *)
 
 rule cat type ;;
 
@@ -111,28 +120,13 @@ rule hom (C : cat) (a : obj C) (b : obj C) type ;;
 
 rule id' (C : cat) (a : obj C) : hom C a a ;;
 
-rule comp' (C : cat)
-           (a : obj C) (b : obj C) (c : obj C)
-           (g : hom C b c) (f : hom C a b)
-         : hom C a c ;;
+rule comp'
+    (C : cat)
+    (a : obj C) (b : obj C) (c : obj C)
+    (g : hom C b c) (f : hom C a b) :
+  hom C a c ;;
 
-rule id_left
-  (C : cat) (a : obj C) (b : obj C) (f : hom C a b)
-  : comp' C a b b (id' C b) f ≡ f : hom C a b ;;
-
-rule id_right
-  (C : cat) (a : obj C) (b : obj C) (f : hom C a b)
-  : comp' C a a b f (id' C a) ≡ f : hom C a b ;;
-
-rule assoc
-  (C : cat)
-  (a : obj C) (b : obj C) (c : obj C) (d : obj C)
-  (h : hom C c d) (g : hom C b c) (f : hom C a b)
-  : comp' C a b d (comp' C b c d h g) f
-  ≡ comp' C a c d h (comp' C a b c g f)
-  : hom C a d ;;
-
-(* Implicit-argument wrappers for the cat vocabulary. *)
+(* Wrappers inferring the category from object/morphism types. *)
 let id a =
   match base.type_of a with
   | (obj ?C type) -> id' C a
@@ -146,52 +140,38 @@ let ( * ) g f =
   end
 ;;
 
-(* ---- Phase B: functor, functoriality, identity functor, functor composition ---- *)
+rule id_left
+    (C : cat) (a : obj C) (b : obj C)
+    (f : hom C a b) :
+  ((id b) * f) ≡ f : hom C a b ;;
+
+rule id_right
+    (C : cat) (a : obj C) (b : obj C)
+    (f : hom C a b) :
+  (f * (id a)) ≡ f : hom C a b ;;
+
+rule assoc
+    (C : cat)
+    (a : obj C) (b : obj C) (c : obj C) (d : obj C)
+    (h : hom C c d) (g : hom C b c) (f : hom C a b) :
+  ((h * g) * f) ≡ (h * (g * f)) : hom C a d ;;
+
+(* ---- Functors ---- *)
 
 rule functor (C : cat) (D : cat) type ;;
 
 rule fobj'
-  (C : cat) (D : cat) (F : functor C D)
-  (a : obj C)
-  : obj D ;;
+    (C : cat) (D : cat) (F : functor C D)
+    (a : obj C) :
+  obj D ;;
 
 rule fmap'
-  (C : cat) (D : cat) (F : functor C D)
-  (a : obj C) (b : obj C)
-  (f : hom C a b)
-  : hom D (fobj' C D F a) (fobj' C D F b) ;;
+    (C : cat) (D : cat) (F : functor C D)
+    (a : obj C) (b : obj C)
+    (f : hom C a b) :
+  hom D (fobj' C D F a) (fobj' C D F b) ;;
 
-rule fmap_id
-  (C : cat) (D : cat) (F : functor C D)
-  (a : obj C)
-  : fmap' C D F a a (id' C a)
-  ≡ id' D (fobj' C D F a)
-  : hom D (fobj' C D F a) (fobj' C D F a) ;;
-
-rule fmap_comp
-  (C : cat) (D : cat) (F : functor C D)
-  (a : obj C) (b : obj C) (c : obj C)
-  (g : hom C b c) (f : hom C a b)
-  : fmap' C D F a c (comp' C a b c g f)
-  ≡ comp' D
-        (fobj' C D F a)
-        (fobj' C D F b)
-        (fobj' C D F c)
-        (fmap' C D F b c g)
-        (fmap' C D F a b f)
-  : hom D (fobj' C D F a) (fobj' C D F c) ;;
-
-(* Identity functor and functor composition — type formers
-   only. β-rules dropped per the linearity audit. *)
-
-rule Id (C : cat) : functor C C ;;
-
-rule Comp
-  (C : cat) (D : cat) (E : cat)
-  (G : functor D E) (F : functor C D)
-  : functor C E ;;
-
-(* Implicit-argument wrappers for functors. *)
+(* Functor action wrappers, inferring the source and target. *)
 let fobj F a =
   match base.type_of F with
   | (functor ?C ?D type) -> fobj' C D F a
@@ -205,54 +185,123 @@ let fmap F f =
   end
 ;;
 
-(* ---- Phase C: Cat as a category ---- *)
+rule fmap_id
+    (C : cat) (D : cat) (F : functor C D)
+    (a : obj C) :
+  fmap F (id a) ≡
+    id (fobj F a) : hom D (fobj F a) (fobj F a) ;;
+
+rule fmap_comp
+    (C : cat) (D : cat) (F : functor C D)
+    (a : obj C) (b : obj C) (c : obj C)
+    (g : hom C b c) (f : hom C a b) :
+  fmap F (g * f) ≡
+    (fmap F g * fmap F f) : hom D (fobj F a) (fobj F c) ;;
+
+(* The identity functor Id' C, with implicit-argument wrapper Id
+   that takes C from the ambient checking-mode boundary. Id is
+   an operation rather than a let-binding so that its evaluation
+   is deferred to each use site and so that check_judgement
+   propagates the boundary into the handler. *)
+rule Id' (C : cat) : functor C C ;;
+
+operation Id : judgement
+with
+| operation Id : ?bopt ->
+  match bopt with
+  | ML.Some (?? : ?T) ->
+    let (_, ?Tnorm) = eq.normalize T in
+    match Tnorm with
+    | (functor ?C _ type) ->
+      convert (Id' C) (eq.equalize_type (functor C C) T)
+    | _ -> base.failure "Id: boundary type does not normalize to functor"
+    end
+  | _ -> base.failure "Id: no checking-mode boundary"
+  end
+end
+
+rule Id_obj_eq
+    (C : cat) (a : obj C) :
+  fobj' C C Id a ≡ a : obj C ;;
+
+rule Id_hom_eq
+    (C : cat) (a : obj C) (b : obj C)
+    (f : hom C a b) :?
+  (eq.add_locally (derive -> Id_obj_eq C a) (fun () ->
+   eq.add_locally (derive -> Id_obj_eq C b) (fun () ->
+   fmap' C C Id a b f ≡ f : hom C a b by ??)))
+;;
+
+(* Functor composition Comp' G F with infix wrapper ( ** ). *)
+rule Comp'
+    (C : cat) (D : cat) (E : cat)
+    (G : functor D E) (F : functor C D) :
+  functor C E ;;
+
+let ( ** ) G F =
+  let (_, ?TG_norm) = eq.normalize (base.type_of G) in
+  let (_, ?TF_norm) = eq.normalize (base.type_of F) in
+  match (TG_norm, TF_norm) with
+  | ((functor ?D ?E type), (functor ?C _ type)) -> Comp' C D E G F
+  end
+;;
+
+rule Comp_obj_eq
+    (C : cat) (D : cat) (E : cat)
+    (G : functor D E) (F : functor C D) (a : obj C) :
+  fobj (G ** F) a ≡ fobj G (fobj F a) : obj E ;;
+
+rule Comp_hom_eq
+    (C : cat) (D : cat) (E : cat)
+    (G : functor D E) (F : functor C D)
+    (a : obj C) (b : obj C) (f : hom C a b) :?
+  (eq.add_locally (derive -> Comp_obj_eq C D E G F a) (fun () ->
+   eq.add_locally (derive -> Comp_obj_eq C D E G F b) (fun () ->
+   fmap (G ** F) f ≡ fmap G (fmap F f)
+   : hom E (fobj G (fobj F a)) (fobj G (fobj F b)) by ??)))
+;;
+
+(* ---- The category of categories Cat ---- *)
 
 rule Cat : cat ;;
 
-(* Object-level identification: a Cat-object is just a category.
-   Wrapped in `derive ->` because zero-premise rules auto-apply
-   at use sites, returning a judgement instead of a derivation. *)
+(* Objects of Cat are categories; morphisms are functors.
+   `derive ->` wraps a zero-premise rule into a derivation
+   value (the bare name desugars to a judgement). *)
 rule Cat_obj : obj Cat ≡ cat ;;
 eq.add_rule (derive -> Cat_obj) ;;
 
-(* Hom-level identification: morphisms between two Cat-objects
-   are functors. Premises are typed at `obj Cat`, not `cat` —
-   the equality-checker stores patterns with the args at their
-   *post-coercion* type, so the rule's premise types must match
-   what the matcher will see. *)
-rule Cat_hom (X : obj Cat) (Y : obj Cat)
-  : hom Cat X Y ≡ functor X Y ;;
+rule Cat_hom
+    (X : obj Cat) (Y : obj Cat) :
+  hom Cat X Y ≡ functor X Y ;;
 eq.add_rule Cat_hom ;;
 
-(* Identity and composition unfolding for Cat. Premises at
-   `obj Cat` for the same matcher reason. *)
-rule Cat_id (C : obj Cat)
-  : id' Cat C ≡ Id C : hom Cat C C ;;
+(* Identity and composition in Cat are the identity functor
+   and functor composition. *)
+rule Cat_id
+    (C : obj Cat) :
+  id C ≡ Id : hom Cat C C ;;
 
 rule Cat_comp
-  (X : obj Cat) (Y : obj Cat) (Z : obj Cat)
-  (G : hom Cat Y Z) (F : hom Cat X Y)
-  : comp' Cat X Y Z G F ≡ Comp X Y Z G F
-  : hom Cat X Z ;;
+    (X : obj Cat) (Y : obj Cat) (Z : obj Cat)
+    (G : hom Cat Y Z) (F : hom Cat X Y) :
+  (G * F) ≡ (G ** F) : hom Cat X Z ;;
 
-(* ---- Phase D: Grothendieck construction (object level) ---- *)
+(* ---- Grothendieck construction (objects) ---- *)
 
-(* The Grothendieck category: for C : cat and F : functor C Cat,
-   the category Groth C F has pairs (c, x) as objects, where
-   c : obj C and x is an object of the category F c. *)
+(* For C : cat and F : functor C Cat, the Grothendieck category
+   Groth C F has pairs (c, x) as objects, where c : obj C and
+   x : obj (F c). *)
 rule Groth (C : cat) (F : functor C Cat) : cat ;;
 
-(* Identify obj (Groth C F) with the dependent sum over (c : obj C)
-   of obj (F c). Registered globally so the Σ machinery (pair',
-   fst', snd', Σ_β₁, Σ_β₂, Σ_ext) applies to Groth-objects
-   transparently. *)
-rule Groth_obj_eq (C : cat) (F : functor C Cat)
-  : obj (Groth C F)
-  ≡ Σ (obj C) ({c : obj C} obj (fobj' C Cat F c)) ;;
+(* An object of Groth C F is a dependent pair. *)
+rule Groth_obj_eq
+    (C : cat) (F : functor C Cat) :
+  obj (Groth C F) ≡
+    Σ (obj C) ({c : obj C} obj (fobj' C Cat F c)) ;;
 eq.add_rule Groth_obj_eq ;;
 
-(* Groth-specific object constructor: builds a Σ-pair at the
-   Groth type-family. C and F are inferred from x's type. *)
+(* Object constructor inferring C and F from x's type. *)
 let groth_obj c x =
   match base.type_of x with
   | (obj (fobj' ?C _ ?F _) type) ->
@@ -260,10 +309,28 @@ let groth_obj c x =
   end
 ;;
 
-(* ---- Phase E: simp lists and the with_rules combinator ---- *)
+(* Groth-specific projections. The generic fst / snd would
+   require base.type_of to return Σ, but it returns the natural
+   type obj (Groth C F) — Groth_obj_eq only fires inside the
+   equality checker, not at pattern-matching time. *)
+let groth_fst p =
+  match base.type_of p with
+  | (obj (Groth ?C ?F) type) ->
+      fst' (obj C) ({d : obj C} obj (fobj' C Cat F d)) p
+  end
+;;
+
+let groth_snd p =
+  match base.type_of p with
+  | (obj (Groth ?C ?F) type) ->
+      snd' (obj C) ({d : obj C} obj (fobj' C Cat F d)) p
+  end
+;;
+
+(* ---- Local equality-checker installation ---- *)
 
 (* Install a list of rules into the equality checker for the
-   duration of a thunk. Restores the checker state after. *)
+   duration of a thunk, restoring the checker state after. *)
 let rec with_rules rs thunk =
   match rs with
   | [] -> thunk ()
@@ -271,15 +338,13 @@ let rec with_rules rs thunk =
   end
 ;;
 
-(* Tier-2 — structural unfoldings useful for downstream
-   reasoning but not in the global checker. *)
+(* Unfoldings of Cat's identity and composition. *)
 let cat_simp =
   [ Cat_id
   ; Cat_comp
   ] ;;
 
-(* Tier-3 — reasoning steps: category laws, functoriality
-   laws. Non-linear, can never go in the global checker. *)
+(* Category and functoriality laws. *)
 let cat_laws =
   [ id_left
   ; id_right
@@ -288,59 +353,90 @@ let cat_laws =
   ; fmap_comp
   ] ;;
 
-(* ---- Phase F: Grothendieck morphisms ---- *)
+(* ---- Grothendieck construction (morphisms) ---- *)
 
-(* Helper: F-transport. Mathematically the same as
-   `fobj' (Fc) (Fc') (fmap' F f) x`, but postulated as a
-   primitive rather than inlined because the natural inlined
-   form hits pathological elaboration times via repeated
-   Cat_obj / Cat_hom firing at every nesting level. *)
-rule F_transport
-  (C : cat) (F : functor C Cat)
-  (c : obj C) (c' : obj C)
-  (f : hom C c c')
-  (x : obj (fobj' C Cat F c))
-  : obj (fobj' C Cat F c') ;;
+(* Action of a functor F : C → Cat on objects: given f : hom C c c'
+   and x : obj (F c), produce the object of F(c') obtained by
+   applying the functor (fmap F f) to x. C, c, c' are inferred. *)
+let act F f x =
+  match (base.type_of F, base.type_of f) with
+  | ((functor ?C Cat type), (hom _ ?c ?c' type)) ->
+      fobj' (fobj' C Cat F c) (fobj' C Cat F c')
+            (fmap' C Cat F c c' f)
+            x
+  end
+;;
 
-(* Identify hom (Groth C F) p q with the dependent sum over
-   (f : hom C (fst' p) (fst' q)) of the morphism in F(fst' q)
-   from the F-transport of (snd' p) along f to (snd' q).
-   Inlined verbatim; the type-family
-     ({d : obj C} obj (fobj' C Cat F d))
-   appears repeatedly. *)
+(* A morphism (c, x) → (c', x') in Groth C F is a pair
+   (f : hom C c c', φ : hom (F c') (act F f x) x'). *)
 rule Groth_hom_eq
-  (C : cat) (F : functor C Cat)
-  (p : obj (Groth C F)) (q : obj (Groth C F))
-  : hom (Groth C F) p q
-  ≡ Σ (hom C
-          (fst' (obj C) ({d : obj C} obj (fobj' C Cat F d)) p)
-          (fst' (obj C) ({d : obj C} obj (fobj' C Cat F d)) q))
-       ({f : hom C
-                (fst' (obj C) ({d : obj C} obj (fobj' C Cat F d)) p)
-                (fst' (obj C) ({d : obj C} obj (fobj' C Cat F d)) q)}
-        hom (fobj' C Cat F
-                   (fst' (obj C) ({d : obj C} obj (fobj' C Cat F d)) q))
-            (F_transport C F
-                (fst' (obj C) ({d : obj C} obj (fobj' C Cat F d)) p)
-                (fst' (obj C) ({d : obj C} obj (fobj' C Cat F d)) q)
-                f
-                (snd' (obj C) ({d : obj C} obj (fobj' C Cat F d)) p))
-            (snd' (obj C) ({d : obj C} obj (fobj' C Cat F d)) q))
+    (C : cat) (F : functor C Cat)
+    (p : obj (Groth C F)) (q : obj (Groth C F)) :
+  hom (Groth C F) p q ≡
+    Σ (hom C (groth_fst p) (groth_fst q))
+       ({f : hom C (groth_fst p) (groth_fst q)}
+        hom (fobj F (groth_fst q))
+            (act F f (groth_snd p))
+            (groth_snd q))
 ;;
 eq.add_rule Groth_hom_eq ;;
 
-(* Groth-specific morphism constructor: builds a Σ-pair at the
-   morphism-level type-family. C, F, c, c', x, x' inferred from
+(* Morphism constructor inferring C, F, c, c', x, x' from
    f and phi's types. *)
 let groth_hom f phi =
   match (base.type_of f, base.type_of phi) with
   | ((hom ?C ?c ?c' type),
-     (hom (fobj' _ Cat ?F _) (F_transport _ _ _ _ _ ?x) ?x' type)) ->
+     (hom (fobj' _ Cat ?F _) (fobj' _ _ _ ?x) ?x' type)) ->
       pair' (hom C c c')
             ({g : hom C c c'}
-             hom (fobj' C Cat F c')
-                 (F_transport C F c c' g x)
-                 x')
+             hom (fobj F c') (act F g x) x')
             f phi
   end
+;;
+
+(* Morphism projections for Groth, dual to groth_fst / groth_snd. *)
+let groth_hom_fst m =
+  match base.type_of m with
+  | (hom (Groth ?C ?F) ?p ?q type) ->
+      fst' (hom C (groth_fst p) (groth_fst q))
+           ({f : hom C (groth_fst p) (groth_fst q)}
+            hom (fobj F (groth_fst q))
+                (act F f (groth_snd p))
+                (groth_snd q))
+           m
+  end
+;;
+
+let groth_hom_snd m =
+  match base.type_of m with
+  | (hom (Groth ?C ?F) ?p ?q type) ->
+      snd' (hom C (groth_fst p) (groth_fst q))
+           ({f : hom C (groth_fst p) (groth_fst q)}
+            hom (fobj F (groth_fst q))
+                (act F f (groth_snd p))
+                (groth_snd q))
+           m
+  end
+;;
+
+(* ---- Projection functor π : Groth C F → C ---- *)
+
+(* The projection sends (c, x) ↦ c and (f, φ) ↦ f. *)
+rule Groth_proj
+    (C : cat) (F : functor C Cat) :
+  functor (Groth C F) C ;;
+
+rule Groth_proj_obj_eq
+    (C : cat) (F : functor C Cat)
+    (p : obj (Groth C F)) :
+  fobj (Groth_proj C F) p ≡ groth_fst p : obj C ;;
+
+rule Groth_proj_hom_eq
+    (C : cat) (F : functor C Cat)
+    (p : obj (Groth C F)) (q : obj (Groth C F))
+    (m : hom (Groth C F) p q) :?
+  (eq.add_locally (derive -> Groth_proj_obj_eq C F p) (fun () ->
+   eq.add_locally (derive -> Groth_proj_obj_eq C F q) (fun () ->
+   fmap (Groth_proj C F) m ≡ groth_hom_fst m
+   : hom C (groth_fst p) (groth_fst q) by ??)))
 ;;

@@ -16,3 +16,13 @@ let comp g f =
   | ((arrow ?B ?C type), (arrow ?A _ type)) -> comp' A B C g f 
   end
 let dog = derive (A type) (f : arrow A A) -> comp f f
+
+operation get_boundary : boundary
+
+with
+| operation get_boundary : ?bopt ->
+  match bopt with
+  | ML.None -> base.failure "there is no boundary here"
+  | ML.Some ?b -> b
+  end
+end

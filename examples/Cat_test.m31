@@ -1,10 +1,7 @@
-(* Smoke test for examples/Cat.m31.
-
-   Postulates a concrete category C, a functor G : C → D, a
-   functor F : C → Cat, and exercises every AML wrapper plus
-   the cat_simp local-installation pathway. Each step that
-   needs to elaborate is followed by the expected display so
-   a casual reader can use this file as a usage example. *)
+(* Smoke test for examples/Cat.m31: postulates a concrete
+   category, functors, and a functor into Cat, exercises the
+   wrappers, and exercises the local equality-checker
+   installation pathway. *)
 
 require Cat ;;
 open Cat ;;
@@ -47,47 +44,63 @@ fmap G f ;;
 rule F : functor C Cat ;;
 rule x : obj (fobj' C Cat F a) ;;
 
-(* Build a Groth-object via groth_obj. C and F are inferred
-   from x's type. The result is a Σ-pair under the hood. *)
+(* A Groth-object (a, x). *)
 let p = groth_obj a x ;;
 
-(* Projections via the generic Σ wrappers. After Groth_obj_eq
-   registers, obj (Groth C F) ≡ Σ ... so fst / snd apply. *)
+(* Projections via the generic Σ wrappers. *)
 fst p ;;
 snd p ;;
 
-(* ---- Σ_β₁ fires globally ---- *)
-
-(* Since pair' / fst' are Σ's generic primitives and Σ_β₁ is
-   globally registered, the projection of a Σ-pair reduces
-   automatically — no instance install needed. *)
+(* fst' on the explicit pair' reduces to its first component
+   via Σ_β₁. *)
 let fst_pair_eq =
   eq.prove
     (fst' (obj C) ({d : obj C} obj (fobj' C Cat F d)) (groth_obj a x)
      ≡ a : obj C by ??)
 ;;
 
-(* ---- with_rules cat_simp: fires the Tier-2 unfoldings ---- *)
-
+(* Local installation of cat_simp lets the equality checker
+   unfold cat_id Cat ≡ Id'. *)
 let cat_id_unfold =
   with_rules cat_simp (fun () ->
-    eq.prove (id' Cat C ≡ Id C : hom Cat C C by ??))
+    eq.prove (id' Cat C ≡ Id' C : hom Cat C C by ??))
 ;;
-(* expected: ⊢ id' Cat C ≡ Id C : hom Cat C C *)
 
 (* ---- Grothendieck morphisms ---- *)
 
-(* Build a concrete C-morphism and an F-action morphism *)
 rule b' : obj C ;;
 rule f_C : hom C a b' ;;
 rule x' : obj (fobj' C Cat F b') ;;
-rule phi_test : hom (fobj' C Cat F b') (F_transport C F a b' f_C x) x' ;;
+rule phi_test : hom (fobj' C Cat F b')
+                    (fobj' (fobj' C Cat F a) (fobj' C Cat F b')
+                           (fmap' C Cat F a b' f_C)
+                           x)
+                    x' ;;
 
-(* Build a Groth-morphism via groth_hom; C, F, c, c', x, x'
-   are all inferred from f_C and phi_test's types. *)
+(* A Groth-morphism (f_C, phi_test). *)
 let m = groth_hom f_C phi_test ;;
 
-(* Project via the generic Σ wrappers — Groth_hom_eq fires to
-   identify hom (Groth C F) … … with the appropriate Σ. *)
 fst m ;;
 snd m ;;
+
+(* ---- Projection functor ---- *)
+
+Groth_proj C F ;;
+
+fobj (Groth_proj C F) p ;;
+
+(* ---- pair as operation ----
+
+   pair takes its type-family from the ambient checking-mode
+   boundary. The handler normalizes the boundary type through
+   the global equality checker, so any type registered as
+   equivalent to a Σ fires the wrapper. *)
+
+(* Boundary already at Σ form: handler fires directly. *)
+let p_via_pair_Σ =
+  pair a x : Σ (obj C) ({d : obj C} obj (fobj' C Cat F d)) ;;
+
+(* Boundary at obj (Groth C F): handler normalizes via
+   Groth_obj_eq, then matches the Σ pattern. *)
+let p_via_pair_Groth = pair a x : obj (Groth C F) ;;
+
