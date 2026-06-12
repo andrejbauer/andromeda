@@ -37,6 +37,70 @@ let refl a =
 rule sym_type (A type) (B type) (A ≡ B) : B ≡ A ;;
 rule sym_term (A type) (a : A) (b : A) (a ≡ b : A) : b ≡ a : A ;;
 
+(* ---- Dependent sums (inlined from theories/dependent_sum.m31) ----
+
+   The Grothendieck construction below uses dependent pairs at
+   both the object and morphism level. Rather than re-axiomatize
+   them twice (and lose the linearized β-rules that the standard
+   library provides), we inline a self-contained Σ-type theory
+   here. Primitive names take the primed form (pair', fst',
+   snd'); AML wrappers below provide the unprimed, base.type_of-
+   inferring "baby-implicits" forms. *)
+
+rule Σ (A type) ({x : A} B type) type ;;
+
+rule pair' (A type) ({x : A} B type) (a : A) (b : B{a}) : Σ A B ;;
+
+rule fst' (A type) ({x : A} B type) (s : Σ A B) : A ;;
+
+rule snd' (A type) ({x : A} B type) (s : Σ A B) : B{fst' A B s} ;;
+
+(* β-laws (linearized Σ_β₁-style: outer A, B + inner A', B' +
+   equality witnesses) so they can register with eq.add_rule. *)
+rule Σ_β₁ (A type) ({x : A} B type)
+          (A' type) ({x : A'} B' type)
+          (a : A') (b : B'{a})
+          (A' ≡ A by ξ) ({x : A'} B'{x} ≡ B{convert x ξ} by ζ)
+          :?
+          (eq.add_locally (derive -> ξ) (fun () ->
+           eq.add_locally (derive (x : A') -> ζ{x}) (fun () ->
+           fst' A B (pair' A' B' a b) ≡ a : A by ?? ))) ;;
+eq.add_rule Σ_β₁ ;;
+
+rule Σ_β₂ (A type) ({x : A} B type)
+          (A' type) ({x : A'} B' type)
+          (a : A') (b : B'{a})
+          (A' ≡ A by ξ) ({x : A'} B'{x} ≡ B{convert x ξ} by ζ)
+          :?
+          (eq.add_locally (derive -> ξ) (fun () ->
+           eq.add_locally (derive (x : A') -> ζ{x}) (fun () ->
+           snd' A B (pair' A' B' a b) ≡ b : B{a} by ?? ))) ;;
+eq.add_rule Σ_β₂ ;;
+
+(* Extensionality: two Σ-pairs with equal projections are equal. *)
+rule Σ_ext (A type) ({x : A} B type) (s : Σ A B) (t : Σ A B)
+  (fst' A B s ≡ fst' A B t : A by ξ)
+  (convert (snd' A B s) (congruence B{fst' A B s} B{fst' A B t} ξ) ≡
+   snd' A B t : B{fst' A B t} by ζ)
+  : s ≡ t : Σ A B ;;
+eq.add_rule Σ_ext ;;
+
+(* AML wrappers for the Σ projections: A and the type-family B
+   are inferred from s : Σ A B via base.type_of. After
+   Groth_obj_eq registers, these also work on Groth-objects
+   (whose type is judgementally equal to a Σ-type). *)
+let fst s =
+  match base.type_of s with
+  | (Σ ?A ?B type) -> fst' A B s
+  end
+;;
+
+let snd s =
+  match base.type_of s with
+  | (Σ ?A ?B type) -> snd' A B s
+  end
+;;
+
 (* ---- Phase A: cat with accessors and laws ---- *)
 
 rule cat type ;;
@@ -178,89 +242,21 @@ rule Cat_comp
    c : obj C and x is an object of the category F c. *)
 rule Groth (C : cat) (F : functor C Cat) : cat ;;
 
-(* Object pairing. x lives in obj (fobj' C Cat F c) — typechecks
-   because Cat_obj fires to identify obj Cat with cat. *)
-rule pair'
-  (C : cat) (F : functor C Cat)
-  (c : obj C) (x : obj (fobj' C Cat F c))
-  : obj (Groth C F) ;;
+(* Identify obj (Groth C F) with the dependent sum over (c : obj C)
+   of obj (F c). Registered globally so the Σ machinery (pair',
+   fst', snd', Σ_β₁, Σ_β₂, Σ_ext) applies to Groth-objects
+   transparently. *)
+rule Groth_obj_eq (C : cat) (F : functor C Cat)
+  : obj (Groth C F)
+  ≡ Σ (obj C) ({c : obj C} obj (fobj' C Cat F c)) ;;
+eq.add_rule Groth_obj_eq ;;
 
-rule fst'
-  (C : cat) (F : functor C Cat)
-  (p : obj (Groth C F))
-  : obj C ;;
-
-rule snd'
-  (C : cat) (F : functor C Cat)
-  (p : obj (Groth C F))
-  : obj (fobj' C Cat F (fst' C F p)) ;;
-
-(* β-laws for projections. fst_beta is non-linear (C and F
-   each appear twice on the LHS), so it doesn't go in the
-   global checker. The Σ_β₁-style linearization was attempted
-   with sym helpers available and still hit the same
-   "trying to convert at functor C Cat using equality on
-   functor C' Cat" error during the proof chain — the
-   structural mismatch between F's natural type and ξF's
-   recorded type isn't resolved by adding sym at the user
-   level; the error is inside the checker's chain. Deferred. *)
-rule fst_beta
-  (C : cat) (F : functor C Cat)
-  (c : obj C) (x : obj (fobj' C Cat F c))
-  : fst' C F (pair' C F c x) ≡ c : obj C ;;
-
-(* snd_beta's postulation needs fst_beta to fire to align the
-   LHS type. Since fst_beta isn't globally registered, we use
-   `:?` + eq.add_locally to install it locally for the
-   instance. *)
-rule snd_beta
-  (C : cat) (F : functor C Cat)
-  (c : obj C) (x : obj (fobj' C Cat F c))
-  :?
-  (eq.add_locally (derive -> fst_beta C F c x) (fun () ->
-    snd' C F (pair' C F c x) ≡ x : obj (fobj' C Cat F c) by ??))
-;;
-
-(* Extensionality for Groth objects: two pairs that agree on
-   both projections are equal. Modelled on the Σ_ext rule in
-   theories/dependent_sum.m31. The equality checker understands
-   extensionality rules of the shape
-       derive … (s : T) (t : T) (proj-equalities) -> s ≡ t : T
-   natively, so we register this with eq.add_rule. *)
-rule pair_ext
-  (C : cat) (F : functor C Cat)
-  (p : obj (Groth C F)) (q : obj (Groth C F))
-  (fst' C F p ≡ fst' C F q : obj C by ξ)
-  (convert (snd' C F p)
-           (congruence
-              (obj (fobj' C Cat F (fst' C F p)))
-              (obj (fobj' C Cat F (fst' C F q)))
-              (convert
-                 (congruence
-                    (fobj' C Cat F (fst' C F p))
-                    (fobj' C Cat F (fst' C F q))
-                    (refl C) (refl Cat) (refl F) ξ)
-                 Cat_obj))
-   ≡ snd' C F q : obj (fobj' C Cat F (fst' C F q)) by ζ)
-  : p ≡ q : obj (Groth C F) ;;
-eq.add_rule pair_ext ;;
-
-(* Implicit-argument wrappers for Grothendieck objects. *)
-let pair c x =
+(* Groth-specific object constructor: builds a Σ-pair at the
+   Groth type-family. C and F are inferred from x's type. *)
+let groth_obj c x =
   match base.type_of x with
-  | (obj (fobj' ?C _ ?F _) type) -> pair' C F c x
-  end
-;;
-
-let fst p =
-  match base.type_of p with
-  | (obj (Groth ?C ?F) type) -> fst' C F p
-  end
-;;
-
-let snd p =
-  match base.type_of p with
-  | (obj (Groth ?C ?F) type) -> snd' C F p
+  | (obj (fobj' ?C _ ?F _) type) ->
+      pair' (obj C) ({d : obj C} obj (fobj' C Cat F d)) c x
   end
 ;;
 
@@ -276,13 +272,7 @@ let rec with_rules rs thunk =
 ;;
 
 (* Tier-2 — structural unfoldings useful for downstream
-   reasoning but not in the global checker. pair_ext is NOT
-   here — it's an extensionality rule and lives in the global
-   checker via eq.add_rule above. fst_beta / snd_beta are NOT
-   here either: they're non-linear (C and F repeat on the
-   LHS), so even local installation via eq.add_locally fails
-   the checker's linearity check. To use them, install the
-   instance: eq.add_locally (derive -> fst_beta C F c x) … *)
+   reasoning but not in the global checker. *)
 let cat_simp =
   [ Cat_id
   ; Cat_comp
@@ -300,14 +290,11 @@ let cat_laws =
 
 (* ---- Phase F: Grothendieck morphisms ---- *)
 
-(* Helper: F-transport. Given a C-morphism f : c → c' and an
-   object x in F(c), produce the corresponding object in F(c').
-   Mathematically the same as `fobj' (Fc) (Fc') (fmap' F f) x`
-   (the action on x of F's functorial image of f), but
-   postulated as a primitive rather than inlined because the
-   natural inlined form hits pathological elaboration times
-   via repeated Cat_obj / Cat_hom firing at every nesting level.
-   The unfolding can be postulated as a β-law if needed. *)
+(* Helper: F-transport. Mathematically the same as
+   `fobj' (Fc) (Fc') (fmap' F f) x`, but postulated as a
+   primitive rather than inlined because the natural inlined
+   form hits pathological elaboration times via repeated
+   Cat_obj / Cat_hom firing at every nesting level. *)
 rule F_transport
   (C : cat) (F : functor C Cat)
   (c : obj C) (c' : obj C)
@@ -315,121 +302,45 @@ rule F_transport
   (x : obj (fobj' C Cat F c))
   : obj (fobj' C Cat F c') ;;
 
-(* A morphism (c, x) → (c', x') in Groth C F is a pair (f, φ)
-   where f : hom C c c' and φ : hom (F c') (F_transport f x) x'
-   — i.e. φ is a morphism in F(c') from the F-transport of x
-   along f to x'. *)
-rule hom_pair'
-  (C : cat) (F : functor C Cat)
-  (c : obj C) (x : obj (fobj' C Cat F c))
-  (c' : obj C) (x' : obj (fobj' C Cat F c'))
-  (f : hom C c c')
-  (phi : hom (fobj' C Cat F c')
-             (F_transport C F c c' f x)
-             x')
-  : hom (Groth C F) (pair' C F c x) (pair' C F c' x') ;;
-
-(* First projection: extract the C-morphism. *)
-rule hom_fst'
+(* Identify hom (Groth C F) p q with the dependent sum over
+   (f : hom C (fst' p) (fst' q)) of the morphism in F(fst' q)
+   from the F-transport of (snd' p) along f to (snd' q).
+   Inlined verbatim; the type-family
+     ({d : obj C} obj (fobj' C Cat F d))
+   appears repeatedly. *)
+rule Groth_hom_eq
   (C : cat) (F : functor C Cat)
   (p : obj (Groth C F)) (q : obj (Groth C F))
-  (m : hom (Groth C F) p q)
-  : hom C (fst' C F p) (fst' C F q) ;;
-
-(* Second projection: extract the φ-morphism, which lives in
-   the category F(fst' q) from F_transport(snd' p) to (snd' q). *)
-rule hom_snd'
-  (C : cat) (F : functor C Cat)
-  (p : obj (Groth C F)) (q : obj (Groth C F))
-  (m : hom (Groth C F) p q)
-  : hom (fobj' C Cat F (fst' C F q))
-        (F_transport C F (fst' C F p) (fst' C F q)
-                     (hom_fst' C F p q m)
-                     (snd' C F p))
-        (snd' C F q) ;;
-
-(* β-law for hom_fst': projecting the C-component of a paired
-   morphism returns the underlying C-morphism. Non-linear in
-   the same way as fst_beta — install instances locally. *)
-rule hom_fst_beta
-  (C : cat) (F : functor C Cat)
-  (c : obj C) (x : obj (fobj' C Cat F c))
-  (c' : obj C) (x' : obj (fobj' C Cat F c'))
-  (f : hom C c c')
-  (phi : hom (fobj' C Cat F c') (F_transport C F c c' f x) x')
-  :?
-  (eq.add_locally (derive -> fst_beta C F c x) (fun () ->
-   eq.add_locally (derive -> fst_beta C F c' x') (fun () ->
-   hom_fst' C F (pair' C F c x) (pair' C F c' x')
-            (hom_pair' C F c x c' x' f phi)
-   ≡ f
-   : hom C c c' by ??)))
+  : hom (Groth C F) p q
+  ≡ Σ (hom C
+          (fst' (obj C) ({d : obj C} obj (fobj' C Cat F d)) p)
+          (fst' (obj C) ({d : obj C} obj (fobj' C Cat F d)) q))
+       ({f : hom C
+                (fst' (obj C) ({d : obj C} obj (fobj' C Cat F d)) p)
+                (fst' (obj C) ({d : obj C} obj (fobj' C Cat F d)) q)}
+        hom (fobj' C Cat F
+                   (fst' (obj C) ({d : obj C} obj (fobj' C Cat F d)) q))
+            (F_transport C F
+                (fst' (obj C) ({d : obj C} obj (fobj' C Cat F d)) p)
+                (fst' (obj C) ({d : obj C} obj (fobj' C Cat F d)) q)
+                f
+                (snd' (obj C) ({d : obj C} obj (fobj' C Cat F d)) p))
+            (snd' (obj C) ({d : obj C} obj (fobj' C Cat F d)) q))
 ;;
+eq.add_rule Groth_hom_eq ;;
 
-(* β-law for hom_snd' — skipped for now. The natural form's
-   LHS-type alignment requires β-reductions on five nested
-   fst'/snd'/hom_fst' subterms, and even with all instances
-   locally installed the proof-chain hits the same
-   convert-direction wall described in the linearization-wall
-   memory. Downstream code can project hom_snd' manually and
-   convert as needed. *)
-
-(* Extensionality for Groth morphisms: two morphisms with the
-   same source/target are equal iff their projections agree
-   (after type-alignment via congruence on F_transport).
-   Modelled on pair_ext at the morphism level. *)
-rule hom_pair_ext
-  (C : cat) (F : functor C Cat)
-  (p : obj (Groth C F)) (q : obj (Groth C F))
-  (m : hom (Groth C F) p q) (n : hom (Groth C F) p q)
-  (hom_fst' C F p q m ≡ hom_fst' C F p q n
-     : hom C (fst' C F p) (fst' C F q) by ξ)
-  (convert (hom_snd' C F p q m)
-           (congruence
-              (hom (fobj' C Cat F (fst' C F q))
-                   (F_transport C F (fst' C F p) (fst' C F q)
-                                (hom_fst' C F p q m) (snd' C F p))
-                   (snd' C F q))
-              (hom (fobj' C Cat F (fst' C F q))
-                   (F_transport C F (fst' C F p) (fst' C F q)
-                                (hom_fst' C F p q n) (snd' C F p))
-                   (snd' C F q))
-              (convert (refl (fobj' C Cat F (fst' C F q))) Cat_obj)
-              (congruence
-                 (F_transport C F (fst' C F p) (fst' C F q)
-                              (hom_fst' C F p q m) (snd' C F p))
-                 (F_transport C F (fst' C F p) (fst' C F q)
-                              (hom_fst' C F p q n) (snd' C F p))
-                 (refl C) (refl F)
-                 (refl (fst' C F p)) (refl (fst' C F q))
-                 ξ
-                 (refl (snd' C F p)))
-              (refl (snd' C F q)))
-   ≡ hom_snd' C F p q n
-   : hom (fobj' C Cat F (fst' C F q))
-         (F_transport C F (fst' C F p) (fst' C F q)
-                      (hom_fst' C F p q n) (snd' C F p))
-         (snd' C F q) by ζ)
-  : m ≡ n : hom (Groth C F) p q ;;
-eq.add_rule hom_pair_ext ;;
-
-(* Implicit-argument wrappers for Grothendieck morphisms. *)
-let hom_pair f phi =
+(* Groth-specific morphism constructor: builds a Σ-pair at the
+   morphism-level type-family. C, F, c, c', x, x' inferred from
+   f and phi's types. *)
+let groth_hom f phi =
   match (base.type_of f, base.type_of phi) with
   | ((hom ?C ?c ?c' type),
      (hom (fobj' _ Cat ?F _) (F_transport _ _ _ _ _ ?x) ?x' type)) ->
-      hom_pair' C F c x c' x' f phi
-  end
-;;
-
-let hom_fst m =
-  match base.type_of m with
-  | (hom (Groth ?C ?F) ?p ?q type) -> hom_fst' C F p q m
-  end
-;;
-
-let hom_snd m =
-  match base.type_of m with
-  | (hom (Groth ?C ?F) ?p ?q type) -> hom_snd' C F p q m
+      pair' (hom C c c')
+            ({g : hom C c c'}
+             hom (fobj' C Cat F c')
+                 (F_transport C F c c' g x)
+                 x')
+            f phi
   end
 ;;
