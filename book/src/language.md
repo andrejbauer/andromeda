@@ -17,27 +17,11 @@ input typed at the Andromeda toplevel.
 
 We refer to AML expressions as
 **computations** to emphasize that they may have *effects* (such as printing
-things on the screen or instantiating a meta-variable).
+things on the screen or modifying state).
 Every computation runs in one of two modes: *inferring* mode, where
-the computation produces whatever value it determines, or *checking*
-mode, where the result must match a given target. For
-judgement-producing computations the target is a *boundary*, covered
-under [Boundaries](type-theory.md#boundaries) in the object type
-theory chapter.
-
-Andromeda is a *generic* proof checker. The user defines their own type theory,
-with respect to which Andromeda computes derivable judgements. Any judgement
-computed by Andromeda is guaranteed to be derivable from the inference rules
-postulated by the user.
-
-While Robin Milner's LCF and its HOL-style descendants compute judgements in
-*simple* type theory, AML supports *dependent* type theories. This creates a
-significant overhead in the complexity. While [John
-Harrison](http://www.cl.cam.ac.uk/~jrh13/) could print the [HOL Light
-kernel](http://www.cl.cam.ac.uk/~jrh13/) on a T-shirt, we may need a cape to
-print the 4000 lines of the [Andromeda
-nucleus](https://en.wikipedia.org/wiki/Andromeda_Galaxy#Nucleus).
-
+the computation may produce an arbitrary result, or *checking*
+mode, where the reesult must be a judgement matching a given
+[boundary](type-theory.md#boundaries).
 
 ## AML-types
 
@@ -51,8 +35,10 @@ on.
 A polymorphic type-scheme is written `mlforall α β ... γ, t`. AML
 infers schemas automatically for `let`-bound values, displaying them
 on the prompt: `fun x -> (x, x)` is reported with the schema
-`mlforall α, α → α * α`. A binding can also be given a schema
-explicitly with `:>`, e.g. `let f x :> mlforall α, α → α = x`.
+`mlforall α, α → α * α`. A schema `s` may be imposed explicitly
+on an expression `e` with the *AML-ascription* `e :> s`, 
+e.g. `let f x :> mlforall α, α → α = x`.
+(The usual ascription `e : t` is reserved for object-level type theory.)
 
 ### AML-type definitions
 
@@ -124,10 +110,10 @@ user-level constructors:
 
 * `mlunit` is the unit type whose only value is the empty tuple `()`
 * `mlstring` is the type of [strings](#strings)
-* `judgement` is the type of nucleus judgements
-* `boundary` is the type of nucleus boundaries
-* `derivation` is the type of nucleus derivations
-* `ref t` is the type of mutable references to a value of type `t`
+* `judgement` is the type of nucleus [judgements](type-theory.md#judgements)
+* `boundary` is the type of nucleus [boundaries](type-theory.md#boundaries)
+* `derivation` is the type of nucleus [derivations](type-theory.md#derivations)
+* `ref t` is the type of [mutable references](#mutable-references) to a value of type `t`
 
 The datatypes pre-defined in the standard library:
 
@@ -140,24 +126,18 @@ The datatypes pre-defined in the standard library:
 * `ML.order` is the type used for comparison of AML
   values, with constructors `ML.less`, `ML.equal`, `ML.greater`
 
-The `judgement`, `boundary`, and `derivation` AML-types are reflections of the
-nucleus's trusted datatypes; their use is covered under the object type
-theory reference (forthcoming). The `ref` type and the operations on it
-appear in [Mutable references](#mutable-references).
-
-
-## General-purpose programming
+## Language constructs
 
 AML is a general-purpose programming language which supports the following programming features:
 
 * [`let`-bindings](#let-binding) of values
-* first-class [functions](#functions)
-* (mutually) [recursive functions](#recursive-functions)
-* datatypes ([lists](#lists), [tuples](#tuples), and [user-definable data types](#ml-type-definitions))
+* first-class [functions](#functions], including (mutually) [recursive functions](#recursive-functions)
+* [tuples](#tuples)
+* user-definable [algebraic data types](#ml-type-definitions)
 * [`match` statements and pattern matching](#match-statements-and-patterns)
+* [mutable references](#mutable-references)
 * [operations and handlers](#operations-and-handlers)
 * [exceptions](#exceptions)
-* [mutable references](#mutable-references)
 * [modules](#modules)
 
 ### `let`-binding
@@ -481,6 +461,15 @@ after the colon, e.g.
 
 binds `?t` to the type carried by the term boundary.
 
+### Mutable references
+
+Mutable references are as in OCaml:
+* a fresh reference is introduced by `ref c` where `c` evaluates to its initial value
+* if `c` evaluates to a reference, its value can be accessed by `! c`
+* if `c` evaluates to a reference, its value can be modified by `c := c'` where `c'` evaluates to the new value.
+
+The AML-type of a mutable cell holding values of type `t` is `ref t`.
+
 ### Operations and handlers
 
 AML operations and handlers are similar to those of the
@@ -675,15 +664,6 @@ with the operation's name. A top-level handler installation replaces
 whatever handler was previously installed for the named operations.
 The top-level form accepts operation cases only.
 
-
-### Mutable references
-
-Mutable references are as in OCaml:
-* a fresh reference is introduced by `ref c` where `c` evaluates to its initial value
-* if `c` evaluates to a reference, its value can be accessed by `! c`
-* if `c` evaluates to a reference, its value can be modified by `c := c'` where `c'` evaluates to the new value.
-
-The AML-type of a mutable cell holding values of type `t` is `ref t`.
 
 ### Modules
 

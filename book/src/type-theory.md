@@ -15,7 +15,7 @@ principal kinds of value:
   for its formal parameters and produces a judgement of a specified
   shape. *Primitive* derivations are introduced at the top level by
   [`rule` declarations](#the-rule-declaration); *derived* ones are
-  produced by the [`derive` computation](#derive).
+  produced by the [`derive` computation](#derivations).
 
 Every judgement, boundary, and derivation originates in the
 *nucleus*, the small trusted component of the implementation. The
@@ -128,20 +128,53 @@ Boundaries, like judgements, can be abstracted. An abstracted
 boundary `{x : A} B` classifies abstracted judgements `{x : A} J`
 in which the body `J` is classified by `B`.
 
-### Boundary ascription `:?`
+### Boundary ascription
 
-The construct `c :? B` evaluates `c` in checking mode against the
-boundary `B`. If `c` computes a judgement `j` that matches `B`, then
-`j` is the result of `c :? B`. If there is a mismatch, Andromeda triggers
-the `ML.coerce j B` operation, giving user code a chance to convert `j`.
-A handler may catch `ML.coerce B` and resume the computation by passing
-any judgement `j'` whose boundary is `B`. Of course, the intended use is
-that `j'` be computed from `j`.
+A computation
+
+    c :? B
+
+where `B` computes to a boundary evaluates `c` in *checking mode* against `B`.
+At runtime, the result `j` of `c` is checked against `B`.
+A mismatch triggers the operation `ML.coerce j B`. A user-defined handler may
+catch `ML.coerce j B` and resume the computation by passing any judgement `j'`
+whose boundary is `B`. Of course, the intended use is that `j'` be computed from `j`.
+
+> [!TIP]
+> Consider the postulates for a Tarski-syle universe `U` with a decoding `El`
+> and a code `bool : U`.
+> ```
+> rule U type ;;
+> rule El (a : U) type ;;
+> rule bool : U ;;
+> ```
+> We must always write `El bool` when a type is expected. This works
+> ```
+> # rule false : El bool ;;
+> Rule false is postulated.
+> ```
+> but this does not
+> ```
+> # rule true : bool ;;
+> Runtime error: unhandled operation ML.coerce (⊢ bool : U) (⊢ ⁇ type)
+> ```
+> We may instrument an implicit coercion from `U` to types by installing
+> a global handler for the `ML.coerce` operations:
+> ```
+> with
+> | operation ML.coerce (?a : U) (?? type) -> El a
+> end
+> ```
+> Now code are coerced to types they encode:
+> ```
+> # rule true : bool ;;
+> Rule true is postulated.
+> ```
 
 ## Inference rules
 
 A `rule` declaration introduces a primitive derivation; the
-[`derive` computation](#derive) builds a derived one inside AML.
+[`derive` computation](#derivations) builds a derived one inside AML.
 
 ### The `rule` declaration
 
@@ -241,6 +274,45 @@ The motive premise `({x y : A} {p : Id A x y} C type)` has a
 three-binder local-context prefix; its basic-form equivalent is
 `(C :? {x y : A} {p : Id A x y} ⁇ type)`.
 
+## Derivations
+
+In Andromeda the user may *derive* complex rules from primitive ones using
+the computation
+
+    derive premise₁ ... premiseₙ -> body
+
+The body of the derivation is checked by the nucleus only once at creation.
+(This is to be distinguished from an AML-level function
+ `fun j₁ ... jₙ -> j` which accepts some judgements and computes a judgement `j`; the nucleus will check `j` at each function call, which is more expensive but also more flexible as it allows
+ implementation of *admissible* rules.)
+
+Each `premiseᵢ` introduces a fresh meta-variable bound under the premise's name in the `body`;
+the body evaluates to the conclusion judgement.
+
+A derivation `d` is applied to premises `j₁`, …, `jₙ` with
+
+    judgement d j₁ ... jₙ
+
+A short-hand notation
+
+    d j₁ ... jₙ
+
+is allowed when at least one premise is present.
+
+>[!TIP]
+> We may derive reflexivity of types using the [`congruence`](#congruence) computation
+> as follows:
+> ```
+> # let reflexivity = derive (A type) -> A ≡ A by (congruence A A) ;;      
+> val reflexivity :> derivation = derive (A type) → A ≡ A
+> # rule X type
+> Rule X is postulated.
+> # judgement reflexivity X
+> - :> judgement = ⊢ X ≡ X
+> # reflexivity X
+> - :> judgement = ⊢ X ≡ X
+> ```
+
 
 ## Judgement computations in AML
 
@@ -301,40 +373,6 @@ meta-variables, disambiguated in the pretty-printer by subscripts:
     - :> judgement = ?x₀ type ⊢ ?x₀ type
     # meta x :? (?? : A)
     - :> judgement = ?x₁ : A ⊢ ?x₁ : A
-
-### `derive`
-
-The computation
-
-    derive premise₁ ... premiseₙ -> body
-
-builds a derived derivation. Each declared premise introduces a
-fresh meta-variable bound under the premise's name in the body; the
-body evaluates to the conclusion judgement. The resulting derivation
-is applied like a primitive rule, by juxtaposition with its
-arguments:
-
-    # rule A type ;;
-    Rule A is postulated.
-    # let id = derive (A type) -> A ;;
-    val id :> derivation = derive (A type) → A type
-    # id A
-    - :> judgement = ⊢ A type
-
-Juxtaposition applies a derivation only when there is at least
-one argument. A derivation of zero arity is applied with the
-`judgement` keyword (the US spelling `judgment` is also
-accepted), which is the explicit form of derivation application:
-
-    # rule c : A ;;
-    Rule c is postulated.
-    # let r = derive -> c ;;
-    val r :> derivation = derive → c : A
-    # judgement r
-    - :> judgement = ⊢ c : A
-
-The keyword accepts further arguments as well: `judgement d e₁
-… eₙ` is equivalent to `d e₁ … eₙ` whenever the latter parses.
 
 ### `convert`
 

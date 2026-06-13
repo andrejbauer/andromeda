@@ -1,19 +1,23 @@
 # Introduction
 
 Andromeda 2 is a proof checker for user-definable dependently-typed theories.
-It follows the design of [LCF](https://en.wikipedia.org/wiki/Logic_for_Computable_Functions)-style theorem provers:
+It follows the design of [LCF](https://en.wikipedia.org/wiki/Logic_for_Computable_Functions)-style theorem provers.
 
-* There is an abstract datatype `judgement` whose values can only be constructed
-  by a *nucleus*, a small trusted component of the proof checker,
+There is an abstract datatype `judgement` whose values can only be constructed by a *nucleus*, a small trusted component of the proof checker. The user interacts with the nucleus by writing programs in a high-level, statically typed *Andromeda meta-language (AML)*. Normalization, unification, and other proof development techniques reside outside the trusted nucleus. They are implemented in AML, or in some cases in OCaml. Andromeda 2 uses algebraic effects and handlers as a control mechanism for directing proof search.
 
-* The user interacts with the nucleus by writing programs in a high-level, statically
-  typed meta-language *Andromeda ML (AML)*.
+Andromeda is a *generic* proof checker. The user defines their own type theory,
+with respect to which Andromeda computes derivable judgements. Any judgement
+computed by Andromeda is guaranteed to be derivable from the inference rules
+postulated by the user.
 
-* Normalization, unification, and other proof development techniques reside outside
-  the trusted nucleus. They are implemented in AML, or in some cases in OCaml.
+While Robin Milner's LCF and its HOL-style descendants compute judgements in
+*simple* type theory, AML supports *dependent* type theories. This creates a
+significant overhead in the complexity. While [John
+Harrison](http://www.cl.cam.ac.uk/~jrh13/) could print the [HOL Light
+kernel](http://www.cl.cam.ac.uk/~jrh13/) on a T-shirt, we may need a cape to
+print the 4000 lines of the [Andromeda
+nucleus](https://en.wikipedia.org/wiki/Andromeda_Galaxy#Nucleus).
 
-* Andromeda 2 uses algebraic effects and handlers as a control mechanism for directing
-  proof search.
 
 
 ## Developers
